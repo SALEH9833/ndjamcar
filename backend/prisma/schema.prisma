@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique
+  passwordHash String    @map("password_hash")
+  email        String?
+  lastLogin    DateTime? @map("last_login")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@map("admin_users")
+}
+
+model Brand {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  logoUrl   String?  @map("logo_url")
+  order     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  models    Model[]
+
+  @@map("brands")
+}
+
+model Model {
+  id        Int      @id @default(autoincrement())
+  name      String
+  brandId   Int      @map("brand_id")
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  vehicles  Vehicle[]
+
+  @@unique([brandId, name])
+  @@map("models")
+}
+
+model Vehicle {
+  id              Int      @id @default(autoincrement())
+  modelId         Int      @map("model_id")
+  model           Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  year            Int
+  color           String?
+  plateNumber     String   @unique @map("plate_number")
+  seats           Int      @default(5)
+  transmission    String   @default("MANUAL")
+  fuelType        String   @default("ESSENCE") @map("fuel_type")
+  pricePerDay     Int      @map("price_per_day")
+  pricePerWeek    Int?     @map("price_per_week")
+  pricePerMonth   Int?     @map("price_per_month")
+  description     String?
+  features        String?
+  status          String   @default("AVAILABLE")
+  mileage         Int?
+  isFeatured      Boolean  @default(false) @map("is_featured")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  images          VehicleImage[]
+  reservations    Reservation[]
+  tracking        VehicleTracking?
+
+  @@index([status])
+  @@index([modelId])
+  @@map("vehicles")
+}
+
+model VehicleImage {
+  id        Int      @id @default(autoincrement())
+  vehicleId Int      @map("vehicle_id")
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  url       String
+  altText   String?  @map("alt_text")
+  isPrimary Boolean  @default(false) @map("is_primary")
+  order     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([vehicleId])
+  @@map("vehicle_images")
+}
+
+model Reservation {
+  id            Int       @id @default(autoincrement())
+  vehicleId     Int       @map("vehicle_id")
+  vehicle       Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  clientName    String    @map("client_name")
+  clientPhone   String    @map("client_phone")
+  clientEmail   String?   @map("client_email")
+  startDate     DateTime  @map("start_date")
+  endDate       DateTime  @map("end_date")
+  totalPrice    Int       @map("total_price")
+  status        String    @default("PENDING")
+  notes         String?
+  paidAmount    Int       @default(0) @map("paid_amount")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([vehicleId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("reservations")
+}
+
+model VehicleTracking {
+  id            Int       @id @default(autoincrement())
+  vehicleId     Int       @unique @map("vehicle_id")
+  vehicle       Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  latitude      Float?
+  longitude     Float?
+  speed         Float?
+  heading       Float?
+  lastUpdate    DateTime? @map("last_update")
+  deviceId      String?   @map("device_id")
+  isOnline      Boolean   @default(false) @map("is_online")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@map("vehicle_tracking")
+}
+
+model SiteContent {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String @default("")
+  group String @default("general")
+  label String @default("")
+  type  String @default("text")
+
+  @@map("site_content")
+}
+
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String
+  email     String?
+  subject   String
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("contact_messages")
+}
