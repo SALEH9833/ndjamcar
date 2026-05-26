@@ -14,19 +14,21 @@ interface AdminData {
   agency?: { name: string } | null;
 }
 
-const BASE_NAV = [
+const SUPER_ADMIN_NAV = [
+  { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { label: 'Agences', href: '/admin/agences', icon: Building2 },
+  { label: 'Demandes', href: '/admin/demandes', icon: ClipboardList },
+  { label: 'Contenu', href: '/admin/contenu', icon: FileText },
+  { label: 'Mon profil', href: '/admin/profil', icon: UserCog },
+];
+
+const AGENCY_NAV = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { label: 'Véhicules', href: '/admin/vehicules', icon: CarFront },
   { label: 'Réservations', href: '/admin/reservations', icon: CalendarCheck },
   { label: 'Suivi GPS', href: '/admin/tracking', icon: MapPin },
   { label: 'Messages', href: '/admin/messages', icon: MessageSquare },
-  { label: 'Contenu', href: '/admin/contenu', icon: FileText },
   { label: 'Mon profil', href: '/admin/profil', icon: UserCog },
-];
-
-const SUPER_NAV = [
-  { label: 'Agences', href: '/admin/agences', icon: Building2 },
-  { label: 'Demandes', href: '/admin/demandes', icon: ClipboardList },
 ];
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
@@ -34,14 +36,19 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [admin, setAdmin] = useState<AdminData | null>(null);
+  const [pendingRequests, setPendingRequests] = useState(0);
 
   useEffect(() => {
     const token = localStorage.getItem('ndjamcar_token');
     if (!token) { router.replace('/admin/login'); return; }
     api.get('/api/auth/me').then(r => {
-      setAdmin(r.data.data);
-      localStorage.setItem('ndjamcar_role', r.data.data.role);
-      if (r.data.data.agencyId) localStorage.setItem('ndjamcar_agencyId', r.data.data.agencyId.toString());
+      const data = r.data.data;
+      setAdmin(data);
+      localStorage.setItem('ndjamcar_role', data.role);
+      if (data.agencyId) localStorage.setItem('ndjamcar_agencyId', data.agencyId.toString());
+      if (data.role === 'SUPER_ADMIN') {
+        api.get('/api/agency-requests/count').then(c => setPendingRequests(c.data.data || 0)).catch(() => {});
+      }
     }).catch(() => {
       localStorage.removeItem('ndjamcar_token');
       localStorage.removeItem('ndjamcar_role');
@@ -64,9 +71,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   );
 
   const isSuperAdmin = admin.role === 'SUPER_ADMIN';
-  const NAV = isSuperAdmin ? [...BASE_NAV.slice(0, 1), ...SUPER_NAV, ...BASE_NAV.slice(1)] : BASE_NAV;
+  const NAV = isSuperAdmin ? SUPER_ADMIN_NAV : AGENCY_NAV;
   const isActive = (href: string) => href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
-  const roleLabel = isSuperAdmin ? 'Super Admin' : admin.agency?.name || 'Admin';
+  const roleLabel = isSuperAdmin ? 'Super Admin' : admin.agency?.name || 'Agence';
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -76,10 +83,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       )}>
         <div className="flex items-center justify-between h-16 px-5 border-b border-gray-800">
           <Link href="/admin" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+            <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', isSuperAdmin ? 'bg-amber-500' : 'bg-blue-600')}>
               <Car className="h-4 w-4 text-white" />
             </div>
-            <span className="font-bold text-lg">NdjamCar</span>
+            <span className="font-bold text-lg">{isSuperAdmin ? 'NdjamCar' : admin.agency?.name || 'NdjamCar'}</span>
           </Link>
           <button className="lg:hidden p-1" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5 text-gray-400" />
@@ -95,12 +102,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 isActive(item.href)
-                  ? 'bg-blue-600 text-white'
+                  ? isSuperAdmin ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800'
               )}
             >
               <item.icon className="h-4.5 w-4.5 shrink-0" />
               {item.label}
+              {item.href === '/admin/demandes' && pendingRequests > 0 && (
+                <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingRequests}</span>
+              )}
             </Link>
           ))}
         </nav>

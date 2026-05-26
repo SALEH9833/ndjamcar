@@ -6,23 +6,182 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CarFront, CalendarCheck, MessageSquare, TrendingUp, AlertCircle, MapPin, Search, Download, Phone, Mail, Car, Filter } from 'lucide-react';
+import { CarFront, CalendarCheck, MessageSquare, TrendingUp, AlertCircle, MapPin, Search, Download, Phone, Mail, Car, Building2, ClipboardList, Users, Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react';
 import { formatPrice, formatDate } from '@/lib/utils';
 import api from '@/lib/api';
-import type { Vehicle, Reservation } from '@/lib/types';
+import type { Vehicle, Reservation, Agency } from '@/lib/types';
 
-interface Stats {
-  totalVehicles: number;
-  availableVehicles: number;
-  rentedVehicles: number;
-  totalReservations: number;
-  pendingReservations: number;
-  activeReservations: number;
-  unreadMessages: number;
+interface AgencyRequest {
+  id: number;
+  name: string;
+  ownerName: string;
+  phone: string;
+  city: string | null;
+  vehicleCount: number;
+  status: string;
+  createdAt: string;
 }
 
-export default function AdminDashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
+function SuperAdminDashboard() {
+  const [agencies, setAgencies] = useState<Agency[]>([]);
+  const [requests, setRequests] = useState<AgencyRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      api.get('/api/agencies').then(r => r.data.data || []).catch(() => []),
+      api.get('/api/agency-requests?status=PENDING').then(r => r.data.data || []).catch(() => []),
+    ]).then(([ag, req]) => {
+      setAgencies(ag);
+      setRequests(req);
+      setLoading(false);
+    });
+  }, []);
+
+  const toggleActive = async (agency: Agency) => {
+    await api.put(`/api/agencies/${agency.id}`, { isActive: !agency.isActive });
+    const updated = await api.get('/api/agencies');
+    setAgencies(updated.data.data || []);
+  };
+
+  const activeAgencies = agencies.filter(a => a.isActive);
+  const inactiveAgencies = agencies.filter(a => !a.isActive);
+  const totalVehicles = agencies.reduce((sum, a) => sum + (a._count?.vehicles || 0), 0);
+  const totalAdmins = agencies.reduce((sum, a) => sum + (a._count?.admins || 0), 0);
+
+  if (loading) return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-28 bg-white rounded-xl animate-pulse" />)}
+    </div>
+  );
+
+  const cards = [
+    { label: 'Total agences', value: agencies.length, icon: Building2, color: 'bg-blue-50 text-blue-600', href: '/admin/agences' },
+    { label: 'Actives', value: activeAgencies.length, icon: CheckCircle2, color: 'bg-green-50 text-green-600', href: '/admin/agences' },
+    { label: 'Suspendues', value: inactiveAgencies.length, icon: XCircle, color: 'bg-red-50 text-red-600', href: '/admin/agences' },
+    { label: 'Demandes en attente', value: requests.length, icon: ClipboardList, color: 'bg-amber-50 text-amber-600', href: '/admin/demandes' },
+    { label: 'Total véhicules', value: totalVehicles, icon: CarFront, color: 'bg-purple-50 text-purple-600', href: '/admin/agences' },
+    { label: 'Total admins', value: totalAdmins, icon: Users, color: 'bg-teal-50 text-teal-600', href: '/admin/agences' },
+  ];
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Dashboard Super Admin</h1>
+        <p className="text-gray-500 text-sm">Gestion des agences NdjamCar</p>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+        {cards.map((card) => (
+          <Link key={card.label} href={card.href}>
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-4">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 ${card.color}`}>
+                  <card.icon className="h-4 w-4" />
+                </div>
+                <p className="text-xl font-bold">{card.value}</p>
+                <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">{card.label}</p>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+
+      {requests.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-amber-600" />
+              Demandes en attente ({requests.length})
+            </h2>
+            <Link href="/admin/demandes">
+              <Button variant="outline" size="sm" className="rounded-xl text-xs">Voir tout</Button>
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {requests.slice(0, 5).map(req => (
+              <Card key={req.id} className="border-0 shadow-sm border-l-4 border-l-amber-500">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold">{req.name}</p>
+                      <div className="flex gap-3 text-xs text-gray-500 mt-1">
+                        <span>{req.ownerName}</span>
+                        <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{req.phone}</span>
+                        {req.city && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{req.city}</span>}
+                        {req.vehicleCount > 0 && <span>{req.vehicleCount} véhicules</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400">{formatDate(req.createdAt)}</span>
+                      <Link href="/admin/demandes">
+                        <Button size="sm" className="rounded-lg text-xs">Traiter</Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-blue-600" />
+            Agences ({agencies.length})
+          </h2>
+          <Link href="/admin/agences">
+            <Button variant="outline" size="sm" className="rounded-xl text-xs">Gérer</Button>
+          </Link>
+        </div>
+        {agencies.length > 0 ? (
+          <div className="space-y-3">
+            {agencies.map(agency => (
+              <Card key={agency.id} className={`border-0 shadow-sm ${!agency.isActive ? 'opacity-50' : ''}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <Building2 className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold">{agency.name}</p>
+                          <Badge className={`border-0 text-[10px] ${agency.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {agency.isActive ? 'Active' : 'Suspendue'}
+                          </Badge>
+                        </div>
+                        <div className="flex gap-3 text-xs text-gray-500 mt-0.5">
+                          {agency.city && <span>{agency.city}</span>}
+                          <span>{agency._count?.vehicles || 0} véhicules</span>
+                          <span>{agency._count?.admins || 0} admins</span>
+                          <span>{agency._count?.reservations || 0} réservations</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toggleActive(agency)}>
+                      {agency.isActive ? <><EyeOff className="h-3.5 w-3.5" /> Suspendre</> : <><Eye className="h-3.5 w-3.5" /> Réactiver</>}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Building2 className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">Aucune agence</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AgencyDashboard() {
+  const [stats, setStats] = useState<any>(null);
   const [rentedVehicles, setRentedVehicles] = useState<Vehicle[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [search, setSearch] = useState('');
@@ -43,9 +202,9 @@ export default function AdminDashboard() {
         availableVehicles: vehicleStats?.available || 0,
         rentedVehicles: vehicleStats?.rented || 0,
         totalReservations: resList.length,
-        pendingReservations: resList.filter((r: { status: string }) => r.status === 'PENDING').length,
-        activeReservations: resList.filter((r: { status: string }) => r.status === 'ACTIVE').length,
-        unreadMessages: msgData.filter((m: { isRead: boolean }) => !m.isRead).length,
+        pendingReservations: resList.filter((r: any) => r.status === 'PENDING').length,
+        activeReservations: resList.filter((r: any) => r.status === 'ACTIVE').length,
+        unreadMessages: msgData.filter((m: any) => !m.isRead).length,
       });
       setRentedVehicles(allVehicles.filter((v: Vehicle) => v.status === 'RENTED'));
       setReservations(resList.filter((r: Reservation) => ['ACTIVE', 'CONFIRMED'].includes(r.status)));
@@ -71,41 +230,21 @@ export default function AdminDashboard() {
     const rows = filteredRented.map(v => {
       const res = getReservationForVehicle(v.id);
       const days = res ? Math.max(1, Math.ceil((new Date(res.endDate).getTime() - new Date(res.startDate).getTime()) / 86400000)) : '';
-      return [
-        v.model.brand.name,
-        v.model.name,
-        v.year,
-        v.plateNumber,
-        v.color || '',
-        v.transmission === 'AUTOMATIC' ? 'Automatique' : 'Manuelle',
-        v.fuelType,
-        v.seats,
-        v.pricePerDay,
-        res?.clientName || '',
-        res?.clientPhone || '',
-        res?.clientEmail || '',
-        res ? formatDate(res.startDate) : '',
-        res ? formatDate(res.endDate) : '',
-        days,
-        res?.totalPrice || '',
-      ].join(';');
+      return [v.model.brand.name, v.model.name, v.year, v.plateNumber, v.color || '', v.transmission === 'AUTOMATIC' ? 'Automatique' : 'Manuelle', v.fuelType, v.seats, v.pricePerDay, res?.clientName || '', res?.clientPhone || '', res?.clientEmail || '', res ? formatDate(res.startDate) : '', res ? formatDate(res.endDate) : '', days, res?.totalPrice || ''].join(';');
     });
     const csv = [headers.join(';'), ...rows].join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const filterLabel = brandFilter || transmissionFilter || search ? '_filtre' : '';
-    a.download = `vehicules_loues${filterLabel}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `vehicules_loues_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   if (!stats) return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {Array.from({ length: 7 }).map((_, i) => (
-        <div key={i} className="h-28 bg-white rounded-xl animate-pulse" />
-      ))}
+      {Array.from({ length: 7 }).map((_, i) => <div key={i} className="h-28 bg-white rounded-xl animate-pulse" />)}
     </div>
   );
 
@@ -202,7 +341,6 @@ export default function AdminDashboard() {
                           <span className="font-semibold text-blue-600">{formatPrice(v.pricePerDay)}/jour</span>
                         </div>
                       </div>
-
                       {res ? (
                         <div className="lg:text-right space-y-1 shrink-0">
                           <p className="font-semibold text-sm">{res.clientName}</p>
@@ -238,4 +376,20 @@ export default function AdminDashboard() {
       </div>
     </div>
   );
+}
+
+export default function AdminDashboard() {
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get('/api/auth/me').then(r => setRole(r.data.data.role)).catch(() => {});
+  }, []);
+
+  if (!role) return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-28 bg-white rounded-xl animate-pulse" />)}
+    </div>
+  );
+
+  return role === 'SUPER_ADMIN' ? <SuperAdminDashboard /> : <AgencyDashboard />;
 }
