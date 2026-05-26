@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -16,6 +16,14 @@ import type { Vehicle, Brand } from '@/lib/types';
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 export default function VehiculesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+      <VehiculesContent />
+    </Suspense>
+  );
+}
+
+function VehiculesContent() {
   const searchParams = useSearchParams();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
