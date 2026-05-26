@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Car, Menu, X, MessageCircle } from 'lucide-react';
+import { Car, Menu, X, MessageCircle, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -45,6 +45,11 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
+          <Link href="/devenir-agence">
+            <Button variant="outline" className="gap-2 rounded-xl text-sm">
+              <Building2 className="h-4 w-4" /> Devenir agence
+            </Button>
+          </Link>
           <a href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Bonjour NdjamCar, je souhaite louer un véhicule.')}`} target="_blank" rel="noopener noreferrer">
             <Button className="gap-2 bg-green-600 hover:bg-green-700 rounded-xl">
               <MessageCircle className="h-4 w-4" /> WhatsApp
@@ -72,6 +77,11 @@ export default function Navbar() {
               {item.label}
             </Link>
           ))}
+          <Link href="/devenir-agence" onClick={() => setOpen(false)} className="block mt-3">
+            <Button variant="outline" className="w-full gap-2">
+              <Building2 className="h-4 w-4" /> Devenir agence
+            </Button>
+          </Link>
           <a href={`https://wa.me/${WHATSAPP}`} target="_blank" rel="noopener noreferrer" className="block mt-3">
             <Button className="w-full gap-2 bg-green-600 hover:bg-green-700">
               <MessageCircle className="h-4 w-4" /> WhatsApp

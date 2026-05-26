@@ -214,3 +214,23 @@ model ContactMessage {
   @@index([agencyId])
   @@map("contact_messages")
 }
+
+model AgencyRequest {
+  id            Int      @id @default(autoincrement())
+  name          String
+  ownerName     String   @map("owner_name")
+  phone         String
+  whatsapp      String?
+  email         String?
+  city          String?
+  address       String?
+  vehicleCount  Int      @default(0) @map("vehicle_count")
+  description   String?
+  status        String   @default("PENDING")
+  adminNotes    String?  @map("admin_notes")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("agency_requests")
+}

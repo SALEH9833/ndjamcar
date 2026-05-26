@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Car, LayoutDashboard, CarFront, CalendarCheck, MapPin, MessageSquare, FileText, LogOut, Menu, X, ChevronRight, UserCog, Building2 } from 'lucide-react';
+import { Car, LayoutDashboard, CarFront, CalendarCheck, MapPin, MessageSquare, FileText, LogOut, Menu, X, ChevronRight, UserCog, Building2, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 
@@ -26,6 +26,7 @@ const BASE_NAV = [
 
 const SUPER_NAV = [
   { label: 'Agences', href: '/admin/agences', icon: Building2 },
+  { label: 'Demandes', href: '/admin/demandes', icon: ClipboardList },
 ];
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
