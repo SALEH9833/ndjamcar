@@ -16,13 +16,30 @@ router.post('/login', async (req, res, next) => {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) { res.status(422).json({ error: 'Identifiants invalides' }); return; }
     const { username, password } = parsed.data;
-    const user = await prisma.adminUser.findUnique({ where: { username } });
+    const user = await prisma.adminUser.findUnique({
+      where: { username },
+      include: { agency: { select: { id: true, name: true, slug: true, isActive: true } } },
+    });
     if (!user) { res.status(401).json({ error: 'Identifiants incorrects' }); return; }
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) { res.status(401).json({ error: 'Identifiants incorrects' }); return; }
+    if (user.role === 'AGENCY_ADMIN' && user.agency && !user.agency.isActive) {
+      res.status(403).json({ error: 'Votre agence est désactivée. Contactez l\'administrateur.' }); return;
+    }
     await prisma.adminUser.update({ where: { id: user.id }, data: { lastLogin: new Date() } });
-    const token = signToken({ id: user.id, username: user.username });
-    res.json({ success: true, token, user: { id: user.id, username: user.username, email: user.email } });
+    const token = signToken({ id: user.id, username: user.username, role: user.role, agencyId: user.agencyId });
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        agencyId: user.agencyId,
+        agency: user.agency,
+      },
+    });
   } catch (err) { next(err); }
 });
 
@@ -30,7 +47,7 @@ router.get('/me', requireAdmin, async (req, res, next) => {
   try {
     const user = await prisma.adminUser.findUnique({
       where: { id: req.admin!.id },
-      select: { id: true, username: true, email: true, lastLogin: true },
+      select: { id: true, username: true, email: true, role: true, agencyId: true, lastLogin: true, agency: { select: { id: true, name: true, slug: true, phone: true, email: true, whatsapp: true, logoUrl: true } } },
     });
     res.json({ success: true, data: user });
   } catch (err) { next(err); }
@@ -52,7 +69,7 @@ router.put('/profile', requireAdmin, async (req, res, next) => {
     const updated = await prisma.adminUser.update({
       where: { id: req.admin!.id },
       data: { ...(username && { username }), ...(email !== undefined && { email }) },
-      select: { id: true, username: true, email: true },
+      select: { id: true, username: true, email: true, role: true, agencyId: true },
     });
     res.json({ success: true, data: updated });
   } catch (err) { next(err); }

@@ -180,7 +180,26 @@ async function main() {
     });
   }
 
-  console.log('Seed completed: 15 brands, 90+ models, 12 content items');
+  const defaultAgency = await prisma.agency.upsert({
+    where: { slug: 'ndjamcar' },
+    update: {},
+    create: {
+      name: 'NdjamCar',
+      slug: 'ndjamcar',
+      phone: '+23560935774',
+      email: 'salehmhtsaleh224@gmail.com',
+      whatsapp: '+23560935774',
+      city: "N'Djamena",
+      isActive: true,
+    },
+  });
+
+  await prisma.adminUser.updateMany({
+    where: { agencyId: null, role: 'SUPER_ADMIN' },
+    data: {},
+  });
+
+  console.log(`Seed completed: 15 brands, 90+ models, 12 content items, agency "${defaultAgency.name}"`);
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());

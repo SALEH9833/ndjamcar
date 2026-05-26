@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import prisma from '../prisma';
-import { requireAdmin } from '../middleware/auth';
+import { requireAdmin, getAgencyFilter } from '../middleware/auth';
 
 const router = Router();
 
@@ -34,7 +34,7 @@ router.post('/', async (req, res, next) => {
     });
     if (overlap) { res.status(409).json({ error: 'Ce véhicule est déjà réservé pour ces dates' }); return; }
     const reservation = await prisma.reservation.create({
-      data: { vehicleId, startDate: new Date(startDate), endDate: new Date(endDate), ...rest },
+      data: { vehicleId, agencyId: vehicle.agencyId, startDate: new Date(startDate), endDate: new Date(endDate), ...rest },
       include: { vehicle: { include: { model: { include: { brand: true } } } } },
     });
     res.status(201).json({ success: true, data: reservation });
@@ -44,8 +44,9 @@ router.post('/', async (req, res, next) => {
 router.get('/', requireAdmin, async (req, res, next) => {
   try {
     const { status } = req.query;
+    const agencyFilter = getAgencyFilter(req);
     const reservations = await prisma.reservation.findMany({
-      where: status ? { status: status as string } : {},
+      where: { ...agencyFilter, ...(status ? { status: status as string } : {}) },
       include: { vehicle: { include: { model: { include: { brand: true } }, images: { where: { isPrimary: true }, take: 1 } } } },
       orderBy: { createdAt: 'desc' },
     });
@@ -60,6 +61,9 @@ router.put('/:id', requireAdmin, async (req, res, next) => {
     const { status, paidAmount, notes } = req.body;
     const reservation = await prisma.reservation.findUnique({ where: { id } });
     if (!reservation) { res.status(404).json({ error: 'Réservation introuvable' }); return; }
+    if (req.admin?.role !== 'SUPER_ADMIN' && reservation.agencyId !== req.admin?.agencyId) {
+      res.status(403).json({ error: 'Accès interdit' }); return;
+    }
 
     const updateData: any = {};
     if (status) updateData.status = status;

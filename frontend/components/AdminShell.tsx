@@ -3,11 +3,18 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Car, LayoutDashboard, CarFront, CalendarCheck, MapPin, MessageSquare, FileText, LogOut, Menu, X, ChevronRight, UserCog } from 'lucide-react';
+import { Car, LayoutDashboard, CarFront, CalendarCheck, MapPin, MessageSquare, FileText, LogOut, Menu, X, ChevronRight, UserCog, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 
-const NAV = [
+interface AdminData {
+  username: string;
+  role: string;
+  agencyId: number | null;
+  agency?: { name: string } | null;
+}
+
+const BASE_NAV = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { label: 'Véhicules', href: '/admin/vehicules', icon: CarFront },
   { label: 'Réservations', href: '/admin/reservations', icon: CalendarCheck },
@@ -17,23 +24,35 @@ const NAV = [
   { label: 'Mon profil', href: '/admin/profil', icon: UserCog },
 ];
 
+const SUPER_NAV = [
+  { label: 'Agences', href: '/admin/agences', icon: Building2 },
+];
+
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [admin, setAdmin] = useState<{ username: string } | null>(null);
+  const [admin, setAdmin] = useState<AdminData | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('ndjamcar_token');
     if (!token) { router.replace('/admin/login'); return; }
-    api.get('/api/auth/me').then(r => setAdmin(r.data.data)).catch(() => {
+    api.get('/api/auth/me').then(r => {
+      setAdmin(r.data.data);
+      localStorage.setItem('ndjamcar_role', r.data.data.role);
+      if (r.data.data.agencyId) localStorage.setItem('ndjamcar_agencyId', r.data.data.agencyId.toString());
+    }).catch(() => {
       localStorage.removeItem('ndjamcar_token');
+      localStorage.removeItem('ndjamcar_role');
+      localStorage.removeItem('ndjamcar_agencyId');
       router.replace('/admin/login');
     });
   }, [router]);
 
   const logout = () => {
     localStorage.removeItem('ndjamcar_token');
+    localStorage.removeItem('ndjamcar_role');
+    localStorage.removeItem('ndjamcar_agencyId');
     router.replace('/admin/login');
   };
 
@@ -43,7 +62,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     </div>
   );
 
+  const isSuperAdmin = admin.role === 'SUPER_ADMIN';
+  const NAV = isSuperAdmin ? [...BASE_NAV.slice(0, 1), ...SUPER_NAV, ...BASE_NAV.slice(1)] : BASE_NAV;
   const isActive = (href: string) => href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
+  const roleLabel = isSuperAdmin ? 'Super Admin' : admin.agency?.name || 'Admin';
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -84,12 +106,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
         <div className="p-3 border-t border-gray-800">
           <div className="flex items-center gap-3 px-3 py-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold">
+            <div className={cn(
+              'w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold',
+              isSuperAdmin ? 'bg-amber-500' : 'bg-blue-600'
+            )}>
               {admin.username[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{admin.username}</p>
-              <p className="text-xs text-gray-500">Admin</p>
+              <p className="text-xs text-gray-500">{roleLabel}</p>
             </div>
           </div>
           <button onClick={logout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-gray-800 w-full transition-colors">
@@ -117,7 +142,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               </>
             )}
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
+            {isSuperAdmin && (
+              <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">SUPER ADMIN</span>
+            )}
             <Link href="/" target="_blank" className="text-xs text-blue-600 hover:underline">
               Voir le site →
             </Link>

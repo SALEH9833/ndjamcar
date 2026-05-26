@@ -8,6 +8,7 @@ import { applySecurity } from './middleware/security';
 import { notFoundHandler, errorHandler } from './middleware/error';
 
 import authRoutes from './routes/auth.routes';
+import agencyRoutes from './routes/agency.routes';
 import brandsRoutes from './routes/brands.routes';
 import modelsRoutes from './routes/models.routes';
 import vehiclesRoutes from './routes/vehicles.routes';
@@ -35,6 +36,7 @@ app.get('/health', async (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/agencies', agencyRoutes);
 app.use('/api/brands', brandsRoutes);
 app.use('/api/models', modelsRoutes);
 app.use('/api/vehicles', vehiclesRoutes);
@@ -57,14 +59,19 @@ async function bootstrap(): Promise<void> {
   try {
     const existing = await prisma.adminUser.findUnique({ where: { username } });
     if (existing) {
-      console.log(`[Bootstrap] Admin "${username}" exists`);
+      if (existing.role !== 'SUPER_ADMIN') {
+        await prisma.adminUser.update({ where: { id: existing.id }, data: { role: 'SUPER_ADMIN' } });
+        console.log(`[Bootstrap] Admin "${username}" upgraded to SUPER_ADMIN`);
+      } else {
+        console.log(`[Bootstrap] Super-admin "${username}" exists`);
+      }
       return;
     }
     const passwordHash = await bcrypt.hash(password, 12);
     await prisma.adminUser.create({
-      data: { username, passwordHash, email: process.env.ADMIN_EMAIL || null },
+      data: { username, passwordHash, email: process.env.ADMIN_EMAIL || null, role: 'SUPER_ADMIN' },
     });
-    console.log(`[Bootstrap] Admin "${username}" created`);
+    console.log(`[Bootstrap] Super-admin "${username}" created`);
   } catch (err) {
     console.error('[Bootstrap] Failed:', err);
   }

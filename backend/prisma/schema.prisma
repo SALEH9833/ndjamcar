@@ -7,14 +7,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Agency {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  phone       String?
+  email       String?
+  address     String?
+  city        String?
+  logoUrl     String?   @map("logo_url")
+  whatsapp    String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  admins      AdminUser[]
+  vehicles    Vehicle[]
+  reservations Reservation[]
+  trackings   VehicleTracking[]
+  geofences   Geofence[]
+  geofenceAlerts GeofenceAlert[]
+  messages    ContactMessage[]
+
+  @@map("agencies")
+}
+
 model AdminUser {
   id           Int       @id @default(autoincrement())
   username     String    @unique
   passwordHash String    @map("password_hash")
   email        String?
+  role         String    @default("AGENCY_ADMIN")
+  agencyId     Int?      @map("agency_id")
+  agency       Agency?   @relation(fields: [agencyId], references: [id], onDelete: SetNull)
   lastLogin    DateTime? @map("last_login")
   createdAt    DateTime  @default(now()) @map("created_at")
 
+  @@index([agencyId])
   @@map("admin_users")
 }
 
@@ -43,6 +71,8 @@ model Model {
 
 model Vehicle {
   id              Int      @id @default(autoincrement())
+  agencyId        Int      @map("agency_id")
+  agency          Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   modelId         Int      @map("model_id")
   model           Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
   year            Int
@@ -67,6 +97,7 @@ model Vehicle {
 
   @@index([status])
   @@index([modelId])
+  @@index([agencyId])
   @@map("vehicles")
 }
 
@@ -86,6 +117,8 @@ model VehicleImage {
 
 model Reservation {
   id            Int       @id @default(autoincrement())
+  agencyId      Int       @map("agency_id")
+  agency        Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   vehicleId     Int       @map("vehicle_id")
   vehicle       Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   clientName    String    @map("client_name")
@@ -101,6 +134,7 @@ model Reservation {
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   @@index([vehicleId])
+  @@index([agencyId])
   @@index([status])
   @@index([startDate, endDate])
   @@map("reservations")
@@ -108,6 +142,8 @@ model Reservation {
 
 model VehicleTracking {
   id            Int       @id @default(autoincrement())
+  agencyId      Int       @map("agency_id")
+  agency        Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   vehicleId     Int       @unique @map("vehicle_id")
   vehicle       Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   latitude      Float?
@@ -119,6 +155,7 @@ model VehicleTracking {
   isOnline      Boolean   @default(false) @map("is_online")
   createdAt     DateTime  @default(now()) @map("created_at")
 
+  @@index([agencyId])
   @@map("vehicle_tracking")
 }
 
@@ -135,16 +172,21 @@ model SiteContent {
 
 model Geofence {
   id        Int      @id @default(autoincrement())
+  agencyId  Int      @map("agency_id")
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   name      String
   points    String
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@index([agencyId])
   @@map("geofences")
 }
 
 model GeofenceAlert {
   id         Int      @id @default(autoincrement())
+  agencyId   Int      @map("agency_id")
+  agency     Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   vehicleId  Int      @map("vehicle_id")
   geofenceId Int      @map("geofence_id")
   type       String   @default("EXIT")
@@ -153,11 +195,14 @@ model GeofenceAlert {
   isRead     Boolean  @default(false) @map("is_read")
   createdAt  DateTime @default(now()) @map("created_at")
 
+  @@index([agencyId])
   @@map("geofence_alerts")
 }
 
 model ContactMessage {
   id        Int      @id @default(autoincrement())
+  agencyId  Int?     @map("agency_id")
+  agency    Agency?  @relation(fields: [agencyId], references: [id], onDelete: SetNull)
   name      String
   phone     String
   email     String?
@@ -166,5 +211,6 @@ model ContactMessage {
   isRead    Boolean  @default(false) @map("is_read")
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@index([agencyId])
   @@map("contact_messages")
 }
