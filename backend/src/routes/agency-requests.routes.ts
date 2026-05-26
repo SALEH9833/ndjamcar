@@ -15,6 +15,8 @@ const requestSchema = z.object({
   city: z.string().trim().max(100).optional().nullable(),
   address: z.string().trim().max(200).optional().nullable(),
   vehicleCount: z.number().int().min(0).max(1000).optional(),
+  adminCount: z.number().int().min(1).max(10).optional(),
+  adminNames: z.string().trim().max(500).optional().nullable(),
   description: z.string().trim().max(1000).optional().nullable(),
 });
 
@@ -65,6 +67,19 @@ router.put('/:id/approve', requireSuperAdmin, async (req, res, next) => {
     if (!request) { res.status(404).json({ error: 'Demande introuvable' }); return; }
     if (request.status !== 'PENDING') { res.status(409).json({ error: 'Cette demande a déjà été traitée' }); return; }
 
+    const { admins } = req.body;
+    if (!admins || !Array.isArray(admins) || admins.length === 0) {
+      res.status(422).json({ error: 'Au moins un compte admin est requis (format: [{username, password, email?}])' }); return;
+    }
+
+    for (const admin of admins) {
+      if (!admin.username || !admin.password) {
+        res.status(422).json({ error: 'Chaque admin doit avoir un username et password' }); return;
+      }
+      const exists = await prisma.adminUser.findUnique({ where: { username: admin.username } });
+      if (exists) { res.status(409).json({ error: `Le nom d'utilisateur "${admin.username}" existe déjà` }); return; }
+    }
+
     const slug = request.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const existingSlug = await prisma.agency.findUnique({ where: { slug } });
     const finalSlug = existingSlug ? `${slug}-${Date.now().toString(36)}` : slug;
@@ -82,21 +97,21 @@ router.put('/:id/approve', requireSuperAdmin, async (req, res, next) => {
       },
     });
 
-    const { username, password } = req.body;
-    if (!username || !password) { res.status(422).json({ error: 'username et password requis pour créer le compte admin' }); return; }
-    const existingUser = await prisma.adminUser.findUnique({ where: { username } });
-    if (existingUser) { res.status(409).json({ error: 'Ce nom d\'utilisateur existe déjà' }); return; }
-
-    const passwordHash = await bcrypt.hash(password, 12);
-    const admin = await prisma.adminUser.create({
-      data: {
-        username,
-        passwordHash,
-        email: request.email,
-        role: 'AGENCY_ADMIN',
-        agencyId: agency.id,
-      },
-    });
+    const createdAdmins: any[] = [];
+    for (const admin of admins) {
+      const passwordHash = await bcrypt.hash(admin.password, 12);
+      const created = await prisma.adminUser.create({
+        data: {
+          username: admin.username,
+          passwordHash,
+          email: admin.email || null,
+          role: 'AGENCY_ADMIN',
+          agencyId: agency.id,
+        },
+        select: { id: true, username: true, email: true },
+      });
+      createdAdmins.push(created);
+    }
 
     await prisma.agencyRequest.update({ where: { id }, data: { status: 'APPROVED' } });
 
@@ -104,8 +119,8 @@ router.put('/:id/approve', requireSuperAdmin, async (req, res, next) => {
       success: true,
       data: {
         agency,
-        admin: { id: admin.id, username: admin.username },
-        message: `Agence "${agency.name}" créée avec le compte admin "${username}"`,
+        admins: createdAdmins,
+        message: `Agence "${agency.name}" créée avec ${createdAdmins.length} admin(s)`,
       },
     });
   } catch (err) { next(err); }

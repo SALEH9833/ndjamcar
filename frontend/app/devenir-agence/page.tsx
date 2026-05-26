@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Building2, CheckCircle2, Phone, Mail, MapPin, Car, FileText, ArrowRight, Shield, TrendingUp, Users } from 'lucide-react';
+import { Building2, CheckCircle2, Phone, Mail, MapPin, Car, FileText, ArrowRight, Shield, TrendingUp, Users, UserPlus } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -20,6 +20,8 @@ export default function DevenirAgencePage() {
     city: '',
     address: '',
     vehicleCount: 0,
+    adminCount: 1,
+    adminNames: '',
     description: '',
   });
   const [loading, setLoading] = useState(false);
@@ -37,6 +39,8 @@ export default function DevenirAgencePage() {
         body: JSON.stringify({
           ...form,
           vehicleCount: parseInt(form.vehicleCount.toString()) || 0,
+          adminCount: parseInt(form.adminCount.toString()) || 1,
+          adminNames: form.adminNames || null,
           whatsapp: form.whatsapp || form.phone,
         }),
       });
@@ -228,7 +232,38 @@ export default function DevenirAgencePage() {
                       className="rounded-lg h-11"
                     />
                   </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1.5 block flex items-center gap-1">
+                      <Users className="h-3 w-3" /> Nombre d&apos;administrateurs *
+                    </label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={10}
+                      required
+                      value={form.adminCount}
+                      onChange={e => setForm({ ...form, adminCount: parseInt(e.target.value) || 1 })}
+                      placeholder="1"
+                      className="rounded-lg h-11"
+                    />
+                  </div>
                 </div>
+
+                {form.adminCount > 1 && (
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1.5 block flex items-center gap-1">
+                      <Users className="h-3 w-3" /> Noms des administrateurs
+                    </label>
+                    <textarea
+                      value={form.adminNames}
+                      onChange={e => setForm({ ...form, adminNames: e.target.value })}
+                      placeholder={`Listez les ${form.adminCount} administrateurs (un par ligne):\nAdmin 1 - Nom complet\nAdmin 2 - Nom complet`}
+                      rows={Math.min(form.adminCount + 1, 6)}
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">Chaque admin aura son propre compte de connexion</p>
+                  </div>
+                )}
 
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1.5 block flex items-center gap-1">

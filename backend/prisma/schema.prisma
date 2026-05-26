@@ -225,6 +225,8 @@ model AgencyRequest {
   city          String?
   address       String?
   vehicleCount  Int      @default(0) @map("vehicle_count")
+  adminCount    Int      @default(1) @map("admin_count")
+  adminNames    String?  @map("admin_names")
   description   String?
   status        String   @default("PENDING")
   adminNotes    String?  @map("admin_notes")
