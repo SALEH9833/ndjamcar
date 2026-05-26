@@ -133,6 +133,29 @@ model SiteContent {
   @@map("site_content")
 }
 
+model Geofence {
+  id        Int      @id @default(autoincrement())
+  name      String
+  points    String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("geofences")
+}
+
+model GeofenceAlert {
+  id         Int      @id @default(autoincrement())
+  vehicleId  Int      @map("vehicle_id")
+  geofenceId Int      @map("geofence_id")
+  type       String   @default("EXIT")
+  latitude   Float
+  longitude  Float
+  isRead     Boolean  @default(false) @map("is_read")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("geofence_alerts")
+}
+
 model ContactMessage {
   id        Int      @id @default(autoincrement())
   name      String

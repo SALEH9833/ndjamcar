@@ -15,6 +15,7 @@ import reservationsRoutes from './routes/reservations.routes';
 import trackingRoutes from './routes/tracking.routes';
 import contactRoutes from './routes/contact.routes';
 import contentRoutes from './routes/content.routes';
+import geofenceRoutes from './routes/geofence.routes';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '4000', 10);
@@ -41,6 +42,7 @@ app.use('/api/reservations', reservationsRoutes);
 app.use('/api/tracking', trackingRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/content', contentRoutes);
+app.use('/api/geofences', geofenceRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

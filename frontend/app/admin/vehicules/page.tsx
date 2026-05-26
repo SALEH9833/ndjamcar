@@ -19,6 +19,7 @@ export default function AdminVehiculesPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [showImages, setShowImages] = useState<number | null>(null);
@@ -137,12 +138,14 @@ export default function AdminVehiculesPage() {
     catch { toast.error('Erreur'); }
   };
 
-  const filtered = search
-    ? vehicles.filter(v => {
-        const q = search.toLowerCase();
-        return v.model.name.toLowerCase().includes(q) || v.model.brand.name.toLowerCase().includes(q) || v.plateNumber.toLowerCase().includes(q);
-      })
-    : vehicles;
+  const filtered = vehicles.filter(v => {
+    if (statusFilter && v.status !== statusFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return v.model.name.toLowerCase().includes(q) || v.model.brand.name.toLowerCase().includes(q) || v.plateNumber.toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   const currentModels = selectedBrand ? brands.find(b => b.id === parseInt(selectedBrand))?.models || [] : [];
 
@@ -158,9 +161,32 @@ export default function AdminVehiculesPage() {
         </Button>
       </div>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher..." className="pl-10 h-10 rounded-xl" />
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher..." className="pl-10 h-10 rounded-xl" />
+        </div>
+        <div className="flex gap-1.5 flex-wrap">
+          {[
+            { value: '', label: 'Tous', count: vehicles.length },
+            { value: 'AVAILABLE', label: 'Disponible', count: vehicles.filter(v => v.status === 'AVAILABLE').length, color: 'bg-green-100 text-green-700' },
+            { value: 'RENTED', label: 'Loué', count: vehicles.filter(v => v.status === 'RENTED').length, color: 'bg-red-100 text-red-700' },
+            { value: 'MAINTENANCE', label: 'Maintenance', count: vehicles.filter(v => v.status === 'MAINTENANCE').length, color: 'bg-yellow-100 text-yellow-700' },
+            { value: 'UNAVAILABLE', label: 'Indisponible', count: vehicles.filter(v => v.status === 'UNAVAILABLE').length, color: 'bg-gray-100 text-gray-700' },
+          ].map((s) => (
+            <button
+              key={s.value}
+              onClick={() => setStatusFilter(s.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                statusFilter === s.value
+                  ? (s.color || 'bg-blue-600 text-white')
+                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {s.label} ({s.count})
+            </button>
+          ))}
+        </div>
       </div>
 
       {showForm && (
