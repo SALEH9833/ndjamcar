@@ -1,0 +1,2 @@
+ALTER TABLE "admin_users" ADD COLUMN "session_token" TEXT;
+ALTER TABLE "admin_users" ADD COLUMN "must_change_password" BOOLEAN NOT NULL DEFAULT false;

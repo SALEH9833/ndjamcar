@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CalendarCheck, Phone, Mail, Check, X, Play, CheckCircle, Ban, MessageCircle } from 'lucide-react';
+import { CalendarCheck, Phone, Mail, Check, X, Play, CheckCircle, Ban, MessageCircle, FileText } from 'lucide-react';
 import { formatPrice, formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import type { Reservation } from '@/lib/types';
 
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 const WHATSAPP = '23560935774';
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -18,6 +19,7 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
   ACTIVE: { label: 'Active', color: 'bg-green-100 text-green-700' },
   COMPLETED: { label: 'Terminée', color: 'bg-gray-100 text-gray-700' },
   CANCELLED: { label: 'Annulée', color: 'bg-red-100 text-red-700' },
+  EXPIRED: { label: 'Expirée (1h)', color: 'bg-orange-100 text-orange-700' },
 };
 
 export default function AdminReservationsPage() {
@@ -49,6 +51,7 @@ export default function AdminReservationsPage() {
     ACTIVE: reservations.filter(r => r.status === 'ACTIVE').length,
     COMPLETED: reservations.filter(r => r.status === 'COMPLETED').length,
     CANCELLED: reservations.filter(r => r.status === 'CANCELLED').length,
+    EXPIRED: reservations.filter(r => r.status === 'EXPIRED').length,
   };
 
   return (
@@ -124,6 +127,11 @@ export default function AdminReservationsPage() {
                       <a href={`https://wa.me/${r.clientPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour ${r.clientName}, concernant votre réservation du véhicule ${vehicleName}...`)}`} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" variant="outline" className="gap-1 rounded-lg text-xs text-green-600">
                           <MessageCircle className="h-3 w-3" /> WhatsApp
+                        </Button>
+                      </a>
+                      <a href={`${API}/api/reservations/${r.id}/invoice?token=${typeof window !== 'undefined' ? localStorage.getItem('ndjamcar_token') || '' : ''}`} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" variant="outline" className="gap-1 rounded-lg text-xs text-blue-600">
+                          <FileText className="h-3 w-3" /> Facture
                         </Button>
                       </a>
                     </div>

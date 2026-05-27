@@ -8,15 +8,22 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Upload, X, Car, Search, Star, StarOff, ImageIcon, ImagePlus } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Pencil, Trash2, Upload, X, Car, Search, Star, StarOff, ImageIcon, ImagePlus, Cpu, History } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import type { Vehicle, Brand } from '@/lib/types';
 
+interface TrackingInfo {
+  vehicleId: number;
+  imei: string | null;
+}
+
 export default function AdminVehiculesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [trackingMap, setTrackingMap] = useState<Map<number, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -40,6 +47,7 @@ export default function AdminVehiculesPage() {
   const [mileage, setMileage] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState('');
+  const [imei, setImei] = useState('');
   const [newImages, setNewImages] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
@@ -48,26 +56,41 @@ export default function AdminVehiculesPage() {
     api.get('/api/vehicles/all').then(r => setVehicles(r.data.data || [])).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
+  const fetchTrackings = useCallback(() => {
+    api.get('/api/tracking').then(r => {
+      const map = new Map<number, string>();
+      (r.data.data || []).forEach((t: TrackingInfo) => { if (t.imei) map.set(t.vehicleId, t.imei); });
+      setTrackingMap(map);
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     fetchVehicles();
+    fetchTrackings();
     api.get('/api/brands').then(r => setBrands(r.data.data || [])).catch(() => {});
-  }, [fetchVehicles]);
+  }, [fetchVehicles, fetchTrackings]);
 
   const resetForm = () => {
     setEditId(null); setModelId(''); setYear(new Date().getFullYear().toString());
     setColor(''); setPlateNumber(''); setSeats('5'); setTransmission('MANUAL');
     setFuelType('ESSENCE'); setPricePerDay(''); setPricePerWeek(''); setPricePerMonth('');
     setDescription(''); setFeatures(''); setMileage(''); setIsFeatured(false); setSelectedBrand('');
-    setNewImages([]); previewUrls.forEach(u => URL.revokeObjectURL(u)); setPreviewUrls([]);
+    setImei(''); setNewImages([]); previewUrls.forEach(u => URL.revokeObjectURL(u)); setPreviewUrls([]);
   };
 
-  const openEdit = (v: Vehicle) => {
+  const openEdit = async (v: Vehicle) => {
     setEditId(v.id); setSelectedBrand(v.model.brand.id.toString()); setModelId(v.modelId.toString());
     setYear(v.year.toString()); setColor(v.color || ''); setPlateNumber(v.plateNumber);
     setSeats(v.seats.toString()); setTransmission(v.transmission); setFuelType(v.fuelType);
     setPricePerDay(v.pricePerDay.toString()); setPricePerWeek(v.pricePerWeek?.toString() || '');
     setPricePerMonth(v.pricePerMonth?.toString() || ''); setDescription(v.description || '');
     setFeatures(v.features || ''); setMileage(v.mileage?.toString() || ''); setIsFeatured(v.isFeatured);
+    setImei('');
+    try {
+      const res = await api.get('/api/tracking');
+      const tracking = (res.data.data || []).find((t: { vehicleId: number }) => t.vehicleId === v.id);
+      if (tracking?.imei) setImei(tracking.imei);
+    } catch {}
     setShowForm(true);
   };
 
@@ -99,7 +122,13 @@ export default function AdminVehiculesPage() {
         await api.post(`/api/vehicles/${vehicleId}/images`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         toast.success(`${newImages.length} image(s) uploadée(s)`);
       }
-      setShowForm(false); resetForm(); fetchVehicles();
+      if (imei.trim() && vehicleId) {
+        try {
+          await api.put(`/api/tracking/${vehicleId}`, { latitude: 12.1348, longitude: 15.0557, speed: 0, heading: 0, isOnline: false });
+          await api.put(`/api/tracking/${vehicleId}/imei`, { imei: imei.trim() });
+        } catch {}
+      }
+      setShowForm(false); resetForm(); fetchVehicles(); fetchTrackings();
     } catch { toast.error('Erreur'); }
   };
 
@@ -282,6 +311,11 @@ export default function AdminVehiculesPage() {
                 <Input value={features} onChange={(e) => setFeatures(e.target.value)} placeholder="Climatisation, GPS, Bluetooth..." className="h-10 rounded-lg" />
               </div>
               <div className="space-y-1.5">
+                <Label className="text-xs flex items-center gap-1.5"><Cpu className="h-3.5 w-3.5 text-blue-500" /> Traceur GPS — IMEI (optionnel)</Label>
+                <Input value={imei} onChange={(e) => setImei(e.target.value)} placeholder="860123456789012 (15 chiffres sur le boîtier du traceur)" maxLength={15} className="h-10 rounded-lg font-mono" />
+                <p className="text-[10px] text-gray-400">Si un traceur GPS est installé dans le véhicule, entrez son IMEI pour le suivi automatique en temps réel</p>
+              </div>
+              <div className="space-y-1.5">
                 <Label className="text-xs">Images du véhicule</Label>
                 <div className="flex flex-wrap gap-3 items-center">
                   {previewUrls.map((url, i) => (
@@ -363,6 +397,9 @@ export default function AdminVehiculesPage() {
                       <span>{v.transmission === 'AUTOMATIC' ? 'Auto' : 'Manuel'}</span>
                       <span>{v.fuelType}</span>
                       <span className="font-semibold text-blue-600">{formatPrice(v.pricePerDay)}/j</span>
+                      {trackingMap.has(v.id) && (
+                        <span className="flex items-center gap-1 text-blue-500"><Cpu className="h-3 w-3" />GPS</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -384,6 +421,9 @@ export default function AdminVehiculesPage() {
                     <button onClick={() => toggleFeatured(v)} className="p-1.5 rounded-lg hover:bg-gray-100" title="Vedette">
                       {v.isFeatured ? <Star className="h-4 w-4 text-amber-500 fill-amber-500" /> : <StarOff className="h-4 w-4 text-gray-400" />}
                     </button>
+                    <Link href={`/admin/vehicules/${v.id}/historique`} className="p-1.5 rounded-lg hover:bg-gray-100" title="Historique">
+                      <History className="h-4 w-4 text-gray-500" />
+                    </Link>
                     <button onClick={() => setShowImages(v.id)} className="p-1.5 rounded-lg hover:bg-gray-100" title="Images">
                       <ImageIcon className="h-4 w-4 text-gray-500" />
                     </button>

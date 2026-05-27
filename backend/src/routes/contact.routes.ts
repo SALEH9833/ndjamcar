@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import prisma from '../prisma';
-import { requireAdmin, getAgencyFilter } from '../middleware/auth';
+import { requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
@@ -11,7 +11,6 @@ const contactSchema = z.object({
   email: z.string().email().max(120).optional().nullable(),
   subject: z.string().trim().min(2).max(200),
   message: z.string().trim().min(5).max(3000),
-  agencyId: z.number().int().positive().optional().nullable(),
 });
 
 router.post('/', async (req, res, next) => {
@@ -23,11 +22,9 @@ router.post('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get('/', requireAdmin, async (req, res, next) => {
+router.get('/', requireAdmin, async (_req, res, next) => {
   try {
-    const agencyFilter = getAgencyFilter(req);
-    const where: any = req.admin?.role === 'SUPER_ADMIN' ? {} : { OR: [agencyFilter, { agencyId: null }] };
-    const messages = await prisma.contactMessage.findMany({ where, orderBy: { createdAt: 'desc' } });
+    const messages = await prisma.contactMessage.findMany({ orderBy: { createdAt: 'desc' } });
     res.json({ success: true, data: messages });
   } catch (err) { next(err); }
 });

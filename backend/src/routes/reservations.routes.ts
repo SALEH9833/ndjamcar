@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import prisma from '../prisma';
-import { requireAdmin, getAgencyFilter } from '../middleware/auth';
+import { requireAdmin } from '../middleware/auth';
+import { sendReservationNotifEmail, buildWhatsAppReservationUrl } from '../lib/mailer';
+import { generateInvoicePDF } from '../lib/invoice';
 
 const router = Router();
 
@@ -34,19 +36,35 @@ router.post('/', async (req, res, next) => {
     });
     if (overlap) { res.status(409).json({ error: 'Ce véhicule est déjà réservé pour ces dates' }); return; }
     const reservation = await prisma.reservation.create({
-      data: { vehicleId, agencyId: vehicle.agencyId, startDate: new Date(startDate), endDate: new Date(endDate), ...rest },
+      data: { vehicleId, startDate: new Date(startDate), endDate: new Date(endDate), ...rest },
       include: { vehicle: { include: { model: { include: { brand: true } } } } },
     });
-    res.status(201).json({ success: true, data: reservation });
+
+    const vehicleName = `${reservation.vehicle.model.brand.name} ${reservation.vehicle.model.name}`;
+    const days = Math.max(1, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000));
+    const formatDate = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+    const notif = {
+      clientName: rest.clientName,
+      clientPhone: rest.clientPhone,
+      clientEmail: rest.clientEmail || null,
+      vehicleName,
+      startDate: formatDate(startDate),
+      endDate: formatDate(endDate),
+      totalPrice: rest.totalPrice,
+      days,
+    };
+    sendReservationNotifEmail(notif).catch(() => {});
+    const whatsappUrl = buildWhatsAppReservationUrl(notif);
+
+    res.status(201).json({ success: true, data: reservation, whatsappUrl });
   } catch (err) { next(err); }
 });
 
 router.get('/', requireAdmin, async (req, res, next) => {
   try {
     const { status } = req.query;
-    const agencyFilter = getAgencyFilter(req);
     const reservations = await prisma.reservation.findMany({
-      where: { ...agencyFilter, ...(status ? { status: status as string } : {}) },
+      where: status ? { status: status as string } : {},
       include: { vehicle: { include: { model: { include: { brand: true } }, images: { where: { isPrimary: true }, take: 1 } } } },
       orderBy: { createdAt: 'desc' },
     });
@@ -61,9 +79,6 @@ router.put('/:id', requireAdmin, async (req, res, next) => {
     const { status, paidAmount, notes } = req.body;
     const reservation = await prisma.reservation.findUnique({ where: { id } });
     if (!reservation) { res.status(404).json({ error: 'Réservation introuvable' }); return; }
-    if (req.admin?.role !== 'SUPER_ADMIN' && reservation.agencyId !== req.admin?.agencyId) {
-      res.status(403).json({ error: 'Accès interdit' }); return;
-    }
 
     const updateData: any = {};
     if (status) updateData.status = status;
@@ -87,6 +102,50 @@ router.put('/:id', requireAdmin, async (req, res, next) => {
       include: { vehicle: { include: { model: { include: { brand: true } } } } },
     });
     res.json({ success: true, data: updated });
+  } catch (err) { next(err); }
+});
+
+router.get('/:id/invoice', async (req, res, next) => {
+  try {
+    const token = (req.query.token as string) || req.headers.authorization?.replace('Bearer ', '');
+    if (!token) { res.status(401).json({ error: 'Non autorisé' }); return; }
+    const jwt = await import('jsonwebtoken');
+    const SECRET = process.env.JWT_SECRET || 'dev-secret';
+    let payload: any;
+    try { payload = jwt.default.verify(token, SECRET); } catch { res.status(401).json({ error: 'Token invalide' }); return; }
+    const user = await prisma.adminUser.findUnique({ where: { id: payload.id }, select: { sessionToken: true } });
+    if (!user || user.sessionToken !== payload.sessionToken) { res.status(401).json({ error: 'Session expirée' }); return; }
+
+    const id = parseInt(req.params.id as string);
+    if (isNaN(id)) { res.status(400).json({ error: 'ID invalide' }); return; }
+    const reservation = await prisma.reservation.findUnique({
+      where: { id },
+      include: { vehicle: { include: { model: { include: { brand: true } } } } },
+    });
+    if (!reservation) { res.status(404).json({ error: 'Réservation introuvable' }); return; }
+
+    const days = Math.max(1, Math.ceil((reservation.endDate.getTime() - reservation.startDate.getTime()) / 86400000));
+    const doc = generateInvoicePDF({
+      id: reservation.id,
+      clientName: reservation.clientName,
+      clientPhone: reservation.clientPhone,
+      clientEmail: reservation.clientEmail,
+      vehicleName: `${reservation.vehicle.model.brand.name} ${reservation.vehicle.model.name}`,
+      plateNumber: reservation.vehicle.plateNumber,
+      startDate: reservation.startDate,
+      endDate: reservation.endDate,
+      days,
+      pricePerDay: reservation.vehicle.pricePerDay,
+      totalPrice: reservation.totalPrice,
+      paidAmount: reservation.paidAmount,
+      status: reservation.status,
+      createdAt: reservation.createdAt,
+    });
+
+    const filename = `facture-${String(id).padStart(5, '0')}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    doc.pipe(res);
   } catch (err) { next(err); }
 });
 

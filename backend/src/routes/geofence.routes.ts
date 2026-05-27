@@ -1,15 +1,14 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import prisma from '../prisma';
-import { requireAdmin, getAgencyFilter } from '../middleware/auth';
+import { requireAdmin } from '../middleware/auth';
 
 const router = Router();
 router.use(requireAdmin);
 
-router.get('/', async (req, res, next) => {
+router.get('/', async (_req, res, next) => {
   try {
-    const agencyFilter = getAgencyFilter(req);
-    const geofences = await prisma.geofence.findMany({ where: agencyFilter, orderBy: { createdAt: 'desc' } });
+    const geofences = await prisma.geofence.findMany({ orderBy: { createdAt: 'desc' } });
     res.json({ success: true, data: geofences });
   } catch (err) { next(err); }
 });
@@ -23,9 +22,7 @@ router.post('/', async (req, res, next) => {
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) { res.status(422).json({ error: 'Données invalides' }); return; }
-    const agencyId = req.admin?.agencyId || 0;
-    if (!agencyId && req.admin?.role !== 'SUPER_ADMIN') { res.status(403).json({ error: 'Aucune agence associée' }); return; }
-    const geofence = await prisma.geofence.create({ data: { ...parsed.data, agencyId } });
+    const geofence = await prisma.geofence.create({ data: parsed.data });
     res.status(201).json({ success: true, data: geofence });
   } catch (err) { next(err); }
 });
@@ -55,8 +52,7 @@ router.delete('/:id', async (req, res, next) => {
 router.get('/alerts', async (req, res, next) => {
   try {
     const { unread } = req.query;
-    const agencyFilter = getAgencyFilter(req);
-    const where: any = { ...agencyFilter };
+    const where: any = {};
     if (unread === 'true') where.isRead = false;
     const alerts = await prisma.geofenceAlert.findMany({
       where,
@@ -78,16 +74,16 @@ router.put('/alerts/:id/read', async (req, res, next) => {
 router.post('/check', async (req, res, next) => {
   try {
     const { vehicleId, latitude, longitude } = req.body;
-    const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId }, select: { agencyId: true } });
+    const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
     if (!vehicle) { res.status(404).json({ error: 'Véhicule introuvable' }); return; }
-    const geofences = await prisma.geofence.findMany({ where: { isActive: true, agencyId: vehicle.agencyId } });
+    const geofences = await prisma.geofence.findMany({ where: { isActive: true } });
     const violations: any[] = [];
     for (const gf of geofences) {
       const points = JSON.parse(gf.points);
       if (!isInsidePolygon(latitude, longitude, points)) {
         violations.push(gf);
         await prisma.geofenceAlert.create({
-          data: { vehicleId, geofenceId: gf.id, agencyId: vehicle.agencyId, type: 'EXIT', latitude, longitude },
+          data: { vehicleId, geofenceId: gf.id, type: 'EXIT', latitude, longitude },
         });
       }
     }

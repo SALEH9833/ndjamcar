@@ -1,18 +1,3 @@
-export interface Agency {
-  id: number;
-  name: string;
-  slug: string;
-  phone: string | null;
-  email: string | null;
-  address: string | null;
-  city: string | null;
-  logoUrl: string | null;
-  whatsapp: string | null;
-  isActive: boolean;
-  createdAt: string;
-  _count?: { vehicles: number; admins: number; reservations: number };
-}
-
 export interface Brand {
   id: number;
   name: string;
@@ -38,8 +23,6 @@ export interface VehicleImage {
 
 export interface Vehicle {
   id: number;
-  agencyId: number;
-  agency?: { id: number; name: string; slug?: string; phone?: string; whatsapp?: string; city?: string };
   modelId: number;
   model: Model & { brand: { id: number; name: string; logoUrl?: string | null } };
   year: number;
@@ -62,7 +45,6 @@ export interface Vehicle {
 
 export interface Reservation {
   id: number;
-  agencyId: number;
   vehicleId: number;
   vehicle?: Vehicle;
   clientName: string;
@@ -94,6 +76,8 @@ export interface VehicleTracking {
   lastUpdate: string | null;
   deviceId: string | null;
   isOnline: boolean;
+  trackingToken: string | null;
+  imei: string | null;
 }
 
 export interface ContactMessage {
@@ -111,7 +95,4 @@ export interface AdminUser {
   id: number;
   username: string;
   email: string | null;
-  role: string;
-  agencyId: number | null;
-  agency?: Agency | null;
 }

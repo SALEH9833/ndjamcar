@@ -5,6 +5,6 @@ import AdminShell from '@/components/AdminShell';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  if (pathname === '/admin/login') return <>{children}</>;
+  if (pathname === '/admin/login' || pathname === '/admin/changer-mdp') return <>{children}</>;
   return <AdminShell>{children}</AdminShell>;
 }

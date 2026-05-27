@@ -99,7 +99,7 @@ export default function HomePage() {
         </motion.button>
       </section>
 
-      <section className="py-12 px-4 bg-white">
+      <section className="py-12 px-4 bg-white dark:bg-gray-950">
         <div className="container mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
@@ -119,7 +119,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 bg-gray-50">
+      <section className="py-16 px-4 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
             <Badge className="bg-blue-100 text-blue-700 border-0 mb-3"><Sparkles className="h-3 w-3 mr-1" />Pourquoi nous choisir</Badge>
@@ -175,8 +175,8 @@ export default function HomePage() {
                   whileTap={{ scale: 0.95 }}
                 >
                   <Link href={`/vehicules?brand=${b.id}`}>
-                    <div className="px-6 py-3 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all cursor-pointer shadow-sm hover:shadow-md">
-                      <span className="font-semibold text-gray-700">{b.name}</span>
+                    <div className="px-6 py-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950 transition-all cursor-pointer shadow-sm hover:shadow-md">
+                      <span className="font-semibold text-gray-700 dark:text-gray-200">{b.name}</span>
                       <span className="text-xs text-gray-400 ml-2">({b.models.length})</span>
                     </div>
                   </Link>
@@ -188,7 +188,7 @@ export default function HomePage() {
       )}
 
       {vehicles.length > 0 && (
-        <section id="featured-vehicles" className="py-16 px-4 bg-gray-50">
+        <section id="featured-vehicles" className="py-16 px-4 bg-gray-50 dark:bg-gray-900">
           <div className="container mx-auto">
             <div className="flex items-center justify-between mb-10">
               <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
@@ -303,7 +303,7 @@ function VehicleCard({ vehicle: v }: { vehicle: Vehicle }) {
             <div className="flex items-start justify-between mb-2">
               <div>
                 <p className="text-xs text-blue-600 font-semibold">{v.model.brand.name}</p>
-                <h3 className="font-bold text-lg text-gray-900">{v.model.name} {v.year}</h3>
+                <h3 className="font-bold text-lg text-gray-900 dark:text-white">{v.model.name} {v.year}</h3>
               </div>
               <div className="text-right">
                 <p className="text-xl font-extrabold text-blue-600">{formatPrice(v.pricePerDay)}</p>

@@ -23,8 +23,13 @@ export default function AdminLoginPage() {
     try {
       const { data } = await api.post('/api/auth/login', { username, password });
       localStorage.setItem('ndjamcar_token', data.token);
-      toast.success('Connexion réussie');
-      router.replace('/admin');
+      if (data.mustChangePassword) {
+        toast.info('Veuillez changer votre mot de passe temporaire');
+        router.replace('/admin/changer-mdp');
+      } else {
+        toast.success('Connexion réussie');
+        router.replace('/admin');
+      }
     } catch {
       toast.error('Identifiants incorrects');
     } finally {

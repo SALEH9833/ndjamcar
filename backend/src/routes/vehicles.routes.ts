@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import prisma from '../prisma';
-import { requireAdmin, getAgencyFilter } from '../middleware/auth';
+import { requireAdmin } from '../middleware/auth';
 import { ssrCacheHeaders } from '../middleware/security';
 import { upload, uploadToCloudinary } from '../middleware/upload';
 
@@ -27,7 +27,7 @@ const vehicleSchema = z.object({
 
 router.get('/', ssrCacheHeaders(30), async (req, res, next) => {
   try {
-    const { brand, model, status, transmission, fuel, minPrice, maxPrice, seats, featured, agency } = req.query;
+    const { brand, model, status, transmission, fuel, minPrice, maxPrice, seats, featured } = req.query;
     const where: any = {};
     if (status) where.status = status;
     else where.status = { in: ['AVAILABLE', 'RENTED'] };
@@ -39,15 +39,12 @@ router.get('/', ssrCacheHeaders(30), async (req, res, next) => {
     if (featured === 'true') where.isFeatured = true;
     if (brand) where.model = { brandId: parseInt(brand as string) };
     if (model) where.modelId = parseInt(model as string);
-    if (agency) where.agencyId = parseInt(agency as string);
-    where.agency = { isActive: true };
 
     const vehicles = await prisma.vehicle.findMany({
       where,
       include: {
         model: { include: { brand: { select: { id: true, name: true, logoUrl: true } } } },
         images: { orderBy: { order: 'asc' } },
-        agency: { select: { id: true, name: true, slug: true, phone: true, whatsapp: true, city: true } },
       },
       orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
     });
@@ -55,16 +52,13 @@ router.get('/', ssrCacheHeaders(30), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get('/all', requireAdmin, async (req, res, next) => {
+router.get('/all', requireAdmin, async (_req, res, next) => {
   try {
-    const agencyFilter = getAgencyFilter(req);
     const vehicles = await prisma.vehicle.findMany({
-      where: agencyFilter,
       include: {
         model: { include: { brand: true } },
         images: { orderBy: { order: 'asc' } },
         reservations: { where: { status: { in: ['PENDING', 'CONFIRMED', 'ACTIVE'] } }, take: 1, orderBy: { startDate: 'asc' } },
-        agency: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -72,16 +66,15 @@ router.get('/all', requireAdmin, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get('/stats', requireAdmin, async (req, res, next) => {
+router.get('/stats', requireAdmin, async (_req, res, next) => {
   try {
-    const agencyFilter = getAgencyFilter(req);
     const [total, available, rented, maintenance] = await Promise.all([
-      prisma.vehicle.count({ where: agencyFilter }),
-      prisma.vehicle.count({ where: { ...agencyFilter, status: 'AVAILABLE' } }),
-      prisma.vehicle.count({ where: { ...agencyFilter, status: 'RENTED' } }),
-      prisma.vehicle.count({ where: { ...agencyFilter, status: 'MAINTENANCE' } }),
+      prisma.vehicle.count(),
+      prisma.vehicle.count({ where: { status: 'AVAILABLE' } }),
+      prisma.vehicle.count({ where: { status: 'RENTED' } }),
+      prisma.vehicle.count({ where: { status: 'MAINTENANCE' } }),
     ]);
-    const pendingReservations = await prisma.reservation.count({ where: { ...agencyFilter, status: 'PENDING' } });
+    const pendingReservations = await prisma.reservation.count({ where: { status: 'PENDING' } });
     res.json({
       success: true,
       data: { total, available, rented, maintenance, pendingReservations },
@@ -98,7 +91,6 @@ router.get('/:id', ssrCacheHeaders(30), async (req, res, next) => {
       include: {
         model: { include: { brand: true } },
         images: { orderBy: { order: 'asc' } },
-        agency: { select: { id: true, name: true, slug: true, phone: true, whatsapp: true, city: true } },
       },
     });
     if (!vehicle) { res.status(404).json({ error: 'Véhicule introuvable' }); return; }
@@ -106,17 +98,35 @@ router.get('/:id', ssrCacheHeaders(30), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.get('/:id/reservations', requireAdmin, async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id as string);
+    if (isNaN(id)) { res.status(400).json({ error: 'ID invalide' }); return; }
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id },
+      include: { model: { include: { brand: true } } },
+    });
+    if (!vehicle) { res.status(404).json({ error: 'Véhicule introuvable' }); return; }
+    const reservations = await prisma.reservation.findMany({
+      where: { vehicleId: id },
+      orderBy: { createdAt: 'desc' },
+    });
+    const stats = {
+      total: reservations.length,
+      completed: reservations.filter(r => r.status === 'COMPLETED').length,
+      cancelled: reservations.filter(r => r.status === 'CANCELLED').length,
+      totalRevenue: reservations.filter(r => r.status === 'COMPLETED').reduce((s, r) => s + r.paidAmount, 0),
+    };
+    res.json({ success: true, data: { vehicle, reservations, stats } });
+  } catch (err) { next(err); }
+});
+
 router.post('/', requireAdmin, async (req, res, next) => {
   try {
-    if (!req.admin?.agencyId && req.admin?.role !== 'SUPER_ADMIN') {
-      res.status(403).json({ error: 'Aucune agence associée' }); return;
-    }
     const parsed = vehicleSchema.safeParse(req.body);
     if (!parsed.success) { res.status(422).json({ error: 'Données invalides', details: parsed.error.flatten() }); return; }
-    const agencyId = req.body.agencyId && req.admin?.role === 'SUPER_ADMIN'
-      ? parseInt(req.body.agencyId) : req.admin!.agencyId!;
     const vehicle = await prisma.vehicle.create({
-      data: { ...parsed.data, agencyId },
+      data: parsed.data,
       include: { model: { include: { brand: true } }, images: true },
     });
     res.status(201).json({ success: true, data: vehicle });
@@ -127,10 +137,6 @@ router.put('/:id', requireAdmin, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id as string);
     if (isNaN(id)) { res.status(400).json({ error: 'ID invalide' }); return; }
-    if (req.admin?.role !== 'SUPER_ADMIN') {
-      const v = await prisma.vehicle.findUnique({ where: { id }, select: { agencyId: true } });
-      if (v?.agencyId !== req.admin?.agencyId) { res.status(403).json({ error: 'Accès interdit' }); return; }
-    }
     const parsed = vehicleSchema.partial().safeParse(req.body);
     if (!parsed.success) { res.status(422).json({ error: 'Données invalides', details: parsed.error.flatten() }); return; }
     const vehicle = await prisma.vehicle.update({
@@ -145,10 +151,6 @@ router.delete('/:id', requireAdmin, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id as string);
     if (isNaN(id)) { res.status(400).json({ error: 'ID invalide' }); return; }
-    if (req.admin?.role !== 'SUPER_ADMIN') {
-      const v = await prisma.vehicle.findUnique({ where: { id }, select: { agencyId: true } });
-      if (v?.agencyId !== req.admin?.agencyId) { res.status(403).json({ error: 'Accès interdit' }); return; }
-    }
     await prisma.vehicle.delete({ where: { id } });
     res.json({ success: true, message: 'Véhicule supprimé' });
   } catch (err) { next(err); }

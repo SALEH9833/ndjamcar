@@ -1,13 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import prisma from '../prisma';
 
 const SECRET = process.env.JWT_SECRET || 'dev-secret';
 
 interface AdminPayload {
   id: number;
   username: string;
-  role: string;
-  agencyId: number | null;
+  sessionToken: string;
   kind: string;
 }
 
@@ -22,27 +23,23 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   if (!header?.startsWith('Bearer ')) { res.status(401).json({ error: 'Token manquant' }); return; }
   try {
     const payload = jwt.verify(header.slice(7), SECRET) as AdminPayload;
-    req.admin = payload;
-    next();
+    prisma.adminUser.findUnique({ where: { id: payload.id }, select: { sessionToken: true } })
+      .then(user => {
+        if (!user || user.sessionToken !== payload.sessionToken) {
+          res.status(401).json({ error: 'Session expirée. Un autre appareil s\'est connecté.' });
+          return;
+        }
+        req.admin = payload;
+        next();
+      })
+      .catch(() => { res.status(401).json({ error: 'Erreur de vérification' }); });
   } catch { res.status(401).json({ error: 'Token invalide' }); }
 }
 
-export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) { res.status(401).json({ error: 'Token manquant' }); return; }
-  try {
-    const payload = jwt.verify(header.slice(7), SECRET) as AdminPayload;
-    if (payload.role !== 'SUPER_ADMIN') { res.status(403).json({ error: 'Accès réservé au super-admin' }); return; }
-    req.admin = payload;
-    next();
-  } catch { res.status(401).json({ error: 'Token invalide' }); }
+export function generateSessionToken(): string {
+  return crypto.randomBytes(32).toString('hex');
 }
 
-export function signToken(payload: { id: number; username: string; role: string; agencyId: number | null }) {
+export function signToken(payload: { id: number; username: string; sessionToken: string }) {
   return jwt.sign({ ...payload, kind: 'admin' }, SECRET, { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as string } as any);
-}
-
-export function getAgencyFilter(req: Request) {
-  if (req.admin?.role === 'SUPER_ADMIN') return {};
-  return { agencyId: req.admin?.agencyId || 0 };
 }

@@ -1,53 +1,82 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MapPin, Wifi, WifiOff, Car, Clock, Gauge, Plus, Power, Crosshair, Trash2, X, Shield, ShieldAlert, Pencil, AlertTriangle, Bell } from 'lucide-react';
+import { MapPin, Wifi, WifiOff, Car, Clock, Gauge, Plus, Power, Crosshair, Trash2, X, Navigation, Search, Route, Loader2, ToggleLeft, ToggleRight, Radio, Eye, Link2, Copy, RefreshCw, Cpu, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import type { VehicleTracking, Vehicle } from '@/lib/types';
 
 const TrackingMap = dynamic(() => import('@/components/TrackingMap'), { ssr: false });
 
-interface Geofence {
-  id: number;
-  name: string;
-  points: string;
-  isActive: boolean;
+interface SearchResult {
+  display_name: string;
+  lat: string;
+  lon: string;
 }
-
-interface GeofenceAlert {
-  id: number;
-  vehicleId: number;
-  geofenceId: number;
-  type: string;
-  latitude: number;
-  longitude: number;
-  isRead: boolean;
-  createdAt: string;
-}
-
-type TabType = 'vehicles' | 'zones' | 'alerts';
 
 export default function AdminTrackingPage() {
   const [trackings, setTrackings] = useState<VehicleTracking[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [geofences, setGeofences] = useState<Geofence[]>([]);
-  const [alerts, setAlerts] = useState<GeofenceAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<number | null>(null);
   const [placingVehicleId, setPlacingVehicleId] = useState<number | null>(null);
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [addVehicleId, setAddVehicleId] = useState('');
-  const [activeTab, setActiveTab] = useState<TabType>('vehicles');
-  const [drawingZone, setDrawingZone] = useState(false);
-  const [drawnPoints, setDrawnPoints] = useState<[number, number][]>([]);
-  const [zoneName, setZoneName] = useState('');
-  const [showZoneForm, setShowZoneForm] = useState(false);
+  const [followingId, setFollowingId] = useState<number | null>(null);
+  const [editingImei, setEditingImei] = useState<number | null>(null);
+  const [imeiValue, setImeiValue] = useState('');
+
+  const [fromQuery, setFromQuery] = useState('');
+  const [toQuery, setToQuery] = useState('');
+  const [fromResults, setFromResults] = useState<SearchResult[]>([]);
+  const [toResults, setToResults] = useState<SearchResult[]>([]);
+  const [searchingFrom, setSearchingFrom] = useState(false);
+  const [searchingTo, setSearchingTo] = useState(false);
+  const [routeFrom, setRouteFrom] = useState<[number, number] | null>(null);
+  const [routeTo, setRouteTo] = useState<[number, number] | null>(null);
+  const [fromSelected, setFromSelected] = useState('');
+  const [toSelected, setToSelected] = useState('');
+  const [trafficEnabled, setTrafficEnabled] = useState(false);
+  const [restored, setRestored] = useState(false);
+
+  const fromTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const followIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ndjamcar_route');
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.fromQuery) setFromQuery(data.fromQuery);
+        if (data.toQuery) setToQuery(data.toQuery);
+        if (data.fromSelected) setFromSelected(data.fromSelected);
+        if (data.toSelected) setToSelected(data.toSelected);
+        if (data.routeFrom) setRouteFrom(data.routeFrom);
+        if (data.routeTo) setRouteTo(data.routeTo);
+        if (data.trafficEnabled) setTrafficEnabled(data.trafficEnabled);
+      }
+    } catch {}
+    setRestored(true);
+  }, []);
+
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      if (routeFrom || routeTo) {
+        localStorage.setItem('ndjamcar_route', JSON.stringify({
+          fromQuery, toQuery, fromSelected, toSelected, routeFrom, routeTo, trafficEnabled,
+        }));
+      } else {
+        localStorage.removeItem('ndjamcar_route');
+      }
+    } catch {}
+  }, [fromQuery, toQuery, fromSelected, toSelected, routeFrom, routeTo, trafficEnabled, restored]);
 
   const fetchTrackings = useCallback(() => {
     api.get('/api/tracking').then(r => setTrackings(r.data.data || [])).catch(() => {}).finally(() => setLoading(false));
@@ -57,25 +86,155 @@ export default function AdminTrackingPage() {
     api.get('/api/vehicles/all').then(r => setVehicles(r.data.data || [])).catch(() => {});
   }, []);
 
-  const fetchGeofences = useCallback(() => {
-    api.get('/api/geofences').then(r => setGeofences(r.data.data || [])).catch(() => {});
-  }, []);
-
-  const fetchAlerts = useCallback(() => {
-    api.get('/api/geofences/alerts').then(r => setAlerts(r.data.data || [])).catch(() => {});
-  }, []);
-
   useEffect(() => {
     fetchTrackings();
     fetchVehicles();
-    fetchGeofences();
-    fetchAlerts();
-    const interval = setInterval(() => { fetchTrackings(); fetchAlerts(); }, 30000);
+    const interval = setInterval(fetchTrackings, 30000);
     return () => clearInterval(interval);
-  }, [fetchTrackings, fetchVehicles, fetchGeofences, fetchAlerts]);
+  }, [fetchTrackings, fetchVehicles]);
+
+  useEffect(() => {
+    if (followIntervalRef.current) {
+      clearInterval(followIntervalRef.current);
+      followIntervalRef.current = null;
+    }
+    if (followingId) {
+      followIntervalRef.current = setInterval(fetchTrackings, 5000);
+    }
+    return () => {
+      if (followIntervalRef.current) clearInterval(followIntervalRef.current);
+    };
+  }, [followingId, fetchTrackings]);
 
   const trackedVehicleIds = trackings.map(t => t.vehicleId);
   const untrackedVehicles = vehicles.filter(v => !trackedVehicleIds.includes(v.id));
+
+  const followedTracking = followingId ? trackings.find(t => t.id === followingId) : null;
+  const followedName = followedTracking?.vehicle
+    ? `${followedTracking.vehicle.model.brand.name} ${followedTracking.vehicle.model.name}`
+    : followedTracking ? `Véhicule #${followedTracking.vehicleId}` : '';
+
+  const getTrackingUrl = (t: VehicleTracking) => {
+    if (!t.trackingToken) return null;
+    const base = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${base}/track/${t.trackingToken}`;
+  };
+
+  const copyGpsLink = async (t: VehicleTracking) => {
+    let token = t.trackingToken;
+    if (!token) {
+      try {
+        const res = await api.post(`/api/tracking/${t.vehicleId}/generate-token`);
+        token = res.data.data.trackingToken;
+        fetchTrackings();
+      } catch { toast.error('Erreur'); return; }
+    }
+    const base = typeof window !== 'undefined' ? window.location.origin : '';
+    const url = `${base}/track/${token}`;
+    await navigator.clipboard.writeText(url);
+    toast.success('Lien GPS copié !');
+  };
+
+  const regenerateToken = async (t: VehicleTracking) => {
+    try {
+      const res = await api.post(`/api/tracking/${t.vehicleId}/generate-token`);
+      const token = res.data.data.trackingToken;
+      const base = typeof window !== 'undefined' ? window.location.origin : '';
+      await navigator.clipboard.writeText(`${base}/track/${token}`);
+      toast.success('Nouveau lien généré et copié !');
+      fetchTrackings();
+    } catch { toast.error('Erreur'); }
+  };
+
+  const saveImei = async (vehicleId: number) => {
+    if (!imeiValue.trim()) { toast.error('Entrez un IMEI'); return; }
+    try {
+      await api.put(`/api/tracking/${vehicleId}/imei`, { imei: imeiValue.trim() });
+      toast.success('Traceur GPS associé');
+      setEditingImei(null);
+      setImeiValue('');
+      fetchTrackings();
+    } catch { toast.error('Erreur'); }
+  };
+
+  const removeImei = async (vehicleId: number) => {
+    try {
+      await api.delete(`/api/tracking/${vehicleId}/imei`);
+      toast.success('Traceur dissocié');
+      fetchTrackings();
+    } catch { toast.error('Erreur'); }
+  };
+
+  const startFollowing = (t: VehicleTracking) => {
+    setFollowingId(t.id);
+    setSelected(t.id);
+    setPlacingVehicleId(null);
+    toast.success(`Suivi en temps réel activé`);
+  };
+
+  const stopFollowing = () => {
+    setFollowingId(null);
+    toast.info('Suivi arrêté');
+  };
+
+  const geocode = async (query: string): Promise<SearchResult[]> => {
+    if (query.length < 3) return [];
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=td,cm,ng,cf`);
+      return await res.json();
+    } catch { return []; }
+  };
+
+  const handleFromChange = (val: string) => {
+    setFromQuery(val);
+    setFromSelected('');
+    if (fromTimeoutRef.current) clearTimeout(fromTimeoutRef.current);
+    if (val.length < 3) { setFromResults([]); return; }
+    setSearchingFrom(true);
+    fromTimeoutRef.current = setTimeout(async () => {
+      const results = await geocode(val);
+      setFromResults(results);
+      setSearchingFrom(false);
+    }, 500);
+  };
+
+  const handleToChange = (val: string) => {
+    setToQuery(val);
+    setToSelected('');
+    if (toTimeoutRef.current) clearTimeout(toTimeoutRef.current);
+    if (val.length < 3) { setToResults([]); return; }
+    setSearchingTo(true);
+    toTimeoutRef.current = setTimeout(async () => {
+      const results = await geocode(val);
+      setToResults(results);
+      setSearchingTo(false);
+    }, 500);
+  };
+
+  const selectFrom = (r: SearchResult) => {
+    setRouteFrom([parseFloat(r.lat), parseFloat(r.lon)]);
+    setFromQuery(r.display_name);
+    setFromSelected(r.display_name);
+    setFromResults([]);
+  };
+
+  const selectTo = (r: SearchResult) => {
+    setRouteTo([parseFloat(r.lat), parseFloat(r.lon)]);
+    setToQuery(r.display_name);
+    setToSelected(r.display_name);
+    setToResults([]);
+  };
+
+  const clearRoute = () => {
+    setRouteFrom(null);
+    setRouteTo(null);
+    setFromQuery('');
+    setToQuery('');
+    setFromSelected('');
+    setToSelected('');
+    setFromResults([]);
+    setToResults([]);
+  };
 
   const addVehicleToTracking = async () => {
     if (!addVehicleId) { toast.error('Choisissez un véhicule'); return; }
@@ -95,15 +254,15 @@ export default function AdminTrackingPage() {
 
   const removeTracking = async (vehicleId: number) => {
     if (!confirm('Retirer ce véhicule du suivi ?')) return;
-    try { await api.delete(`/api/tracking/${vehicleId}`); toast.success('Retiré'); fetchTrackings(); }
-    catch { toast.error('Erreur'); }
+    try {
+      await api.delete(`/api/tracking/${vehicleId}`);
+      toast.success('Retiré');
+      if (followedTracking && followedTracking.vehicleId === vehicleId) setFollowingId(null);
+      fetchTrackings();
+    } catch { toast.error('Erreur'); }
   };
 
   const handleMapClick = async (lat: number, lng: number) => {
-    if (drawingZone) {
-      setDrawnPoints(prev => [...prev, [lat, lng]]);
-      return;
-    }
     if (!placingVehicleId) return;
     try {
       await api.put(`/api/tracking/${placingVehicleId}`, { latitude: lat, longitude: lng, speed: 0, heading: 0, isOnline: true });
@@ -112,38 +271,8 @@ export default function AdminTrackingPage() {
     } catch { toast.error('Erreur'); }
   };
 
-  const saveZone = async () => {
-    if (!zoneName) { toast.error('Donnez un nom à la zone'); return; }
-    if (drawnPoints.length < 3) { toast.error('Dessinez au moins 3 points'); return; }
-    try {
-      await api.post('/api/geofences', { name: zoneName, points: JSON.stringify(drawnPoints) });
-      toast.success('Zone créée');
-      setDrawingZone(false); setDrawnPoints([]); setZoneName(''); setShowZoneForm(false);
-      fetchGeofences();
-    } catch { toast.error('Erreur'); }
-  };
-
-  const toggleGeofence = async (gf: Geofence) => {
-    try {
-      await api.put(`/api/geofences/${gf.id}`, { isActive: !gf.isActive });
-      fetchGeofences();
-    } catch { toast.error('Erreur'); }
-  };
-
-  const deleteGeofence = async (id: number) => {
-    if (!confirm('Supprimer cette zone ?')) return;
-    try { await api.delete(`/api/geofences/${id}`); toast.success('Zone supprimée'); fetchGeofences(); }
-    catch { toast.error('Erreur'); }
-  };
-
-  const markAlertRead = async (id: number) => {
-    try { await api.put(`/api/geofences/alerts/${id}/read`); fetchAlerts(); }
-    catch { toast.error('Erreur'); }
-  };
-
   const online = trackings.filter(t => t.isOnline);
   const withPosition = trackings.filter(t => t.latitude && t.longitude);
-  const unreadAlerts = alerts.filter(a => !a.isRead).length;
 
   return (
     <div>
@@ -154,29 +283,33 @@ export default function AdminTrackingPage() {
             {online.length} en ligne · {withPosition.length} avec position · {trackings.length} total
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowAddPanel(!showAddPanel)} className="gap-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs">
-            <Plus className="h-4 w-4" /> Véhicule
-          </Button>
-          <Button onClick={() => { setDrawingZone(true); setDrawnPoints([]); setShowZoneForm(true); setActiveTab('zones'); }} className="gap-2 bg-purple-600 hover:bg-purple-700 rounded-xl text-xs">
-            <Shield className="h-4 w-4" /> Nouvelle zone
-          </Button>
-        </div>
+        <Button onClick={() => setShowAddPanel(!showAddPanel)} className="gap-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs">
+          <Plus className="h-4 w-4" /> Véhicule
+        </Button>
       </div>
 
-      {(placingVehicleId || drawingZone) && (
-        <div className={`${drawingZone ? 'bg-purple-50 border-purple-200' : 'bg-amber-50 border-amber-200'} border rounded-xl p-3 mb-4 flex items-center gap-3`}>
-          {drawingZone ? <Shield className="h-5 w-5 text-purple-600 animate-pulse" /> : <Crosshair className="h-5 w-5 text-amber-600 animate-pulse" />}
-          <p className="text-sm flex-1">
-            {drawingZone
-              ? <><strong>Mode zone :</strong> Cliquez sur la carte pour dessiner la zone ({drawnPoints.length} point(s))</>
-              : <><strong>Mode placement :</strong> Cliquez sur la carte pour placer le véhicule</>
-            }
-          </p>
-          {drawingZone && drawnPoints.length >= 3 && (
-            <Button size="sm" onClick={saveZone} className="bg-purple-600 hover:bg-purple-700 rounded-lg text-xs">Valider</Button>
-          )}
-          <Button size="sm" variant="outline" onClick={() => { setPlacingVehicleId(null); setDrawingZone(false); setDrawnPoints([]); setShowZoneForm(false); }} className="rounded-lg text-xs">
+      {followingId && followedTracking && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 flex items-center gap-3">
+          <Radio className="h-5 w-5 text-green-600 animate-pulse" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-green-800">Suivi en temps réel : {followedName}</p>
+            <p className="text-xs text-green-600">
+              {followedTracking.latitude?.toFixed(4)}, {followedTracking.longitude?.toFixed(4)}
+              {followedTracking.speed && followedTracking.speed > 0 ? ` · ${followedTracking.speed} km/h` : ''}
+              {' · '}Rafraîchissement toutes les 5s
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={stopFollowing} className="rounded-lg text-xs border-green-300 text-green-700 hover:bg-green-100">
+            <X className="h-3 w-3 mr-1" /> Arrêter
+          </Button>
+        </div>
+      )}
+
+      {placingVehicleId && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 flex items-center gap-3">
+          <Crosshair className="h-5 w-5 text-amber-600 animate-pulse" />
+          <p className="text-sm flex-1"><strong>Mode placement :</strong> Cliquez sur la carte pour placer le véhicule</p>
+          <Button size="sm" variant="outline" onClick={() => setPlacingVehicleId(null)} className="rounded-lg text-xs">
             <X className="h-3 w-3 mr-1" /> Annuler
           </Button>
         </div>
@@ -206,21 +339,85 @@ export default function AdminTrackingPage() {
         </Card>
       )}
 
-      {showZoneForm && (
-        <Card className="border-0 shadow-lg mb-6">
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <Shield className="h-5 w-5 text-purple-600" />
-              <Input value={zoneName} onChange={(e) => setZoneName(e.target.value)} placeholder="Nom de la zone (ex: Zone N'Djamena)" className="h-10 rounded-lg flex-1" />
-              {drawnPoints.length >= 3 && (
-                <Button onClick={saveZone} className="bg-purple-600 hover:bg-purple-700 rounded-xl gap-1">
-                  <Shield className="h-4 w-4" /> Sauvegarder ({drawnPoints.length} pts)
-                </Button>
+      <Card className="border-0 shadow-lg mb-6">
+        <CardContent className="p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Route className="h-5 w-5 text-blue-600" />
+            <h3 className="font-bold">Recherche d&apos;itinéraire</h3>
+            <div className="flex-1" />
+            <button
+              onClick={() => setTrafficEnabled(!trafficEnabled)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${trafficEnabled ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}
+            >
+              {trafficEnabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+              Trafic
+            </button>
+            {(routeFrom || routeTo) && (
+              <Button size="sm" variant="outline" onClick={clearRoute} className="rounded-lg text-xs gap-1">
+                <X className="h-3 w-3" /> Effacer
+              </Button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500 shrink-0" />
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    value={fromQuery}
+                    onChange={(e) => handleFromChange(e.target.value)}
+                    placeholder="Point de départ..."
+                    className="h-10 rounded-lg pl-9"
+                  />
+                  {searchingFrom && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-500 animate-spin" />}
+                </div>
+              </div>
+              {fromResults.length > 0 && !fromSelected && (
+                <div className="absolute z-50 top-full left-5 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {fromResults.map((r, i) => (
+                    <button key={i} onClick={() => selectFrom(r)} className="w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 border-b border-gray-50 last:border-0 flex items-start gap-2">
+                      <MapPin className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
+                      <span className="line-clamp-2">{r.display_name}</span>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <div className="relative">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500 shrink-0" />
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    value={toQuery}
+                    onChange={(e) => handleToChange(e.target.value)}
+                    placeholder="Point d&apos;arrivée..."
+                    className="h-10 rounded-lg pl-9"
+                  />
+                  {searchingTo && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-500 animate-spin" />}
+                </div>
+              </div>
+              {toResults.length > 0 && !toSelected && (
+                <div className="absolute z-50 top-full left-5 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {toResults.map((r, i) => (
+                    <button key={i} onClick={() => selectTo(r)} className="w-full text-left px-3 py-2.5 text-sm hover:bg-blue-50 border-b border-gray-50 last:border-0 flex items-start gap-2">
+                      <MapPin className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
+                      <span className="line-clamp-2">{r.display_name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          {routeFrom && routeTo && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-blue-600">
+              <Navigation className="h-3.5 w-3.5" />
+              <span>Itinéraire affiché sur la carte</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
@@ -231,174 +428,130 @@ export default function AdminTrackingPage() {
                 selected={selected}
                 onSelect={setSelected}
                 onMapClick={handleMapClick}
-                isPlacing={!!placingVehicleId || drawingZone}
-                geofences={geofences.filter(g => g.isActive)}
-                drawnPoints={drawnPoints}
+                isPlacing={!!placingVehicleId}
+                routeFrom={routeFrom}
+                routeTo={routeTo}
+                trafficEnabled={trafficEnabled}
+                followingId={followingId}
               />
             </div>
           </Card>
         </div>
 
         <div className="space-y-3">
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-            {([
-              { key: 'vehicles' as TabType, label: 'Véhicules', count: trackings.length },
-              { key: 'zones' as TabType, label: 'Zones', count: geofences.length },
-              { key: 'alerts' as TabType, label: 'Alertes', count: unreadAlerts },
-            ]).map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  activeTab === tab.key ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {tab.label} {tab.count > 0 && <Badge className={`ml-1 text-[9px] px-1 border-0 ${tab.key === 'alerts' && unreadAlerts > 0 ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600'}`}>{tab.count}</Badge>}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 px-1 mb-1">
+            <Car className="h-4 w-4 text-gray-500" />
+            <span className="text-sm font-semibold text-gray-700">Véhicules suivis</span>
+            <Badge className="bg-gray-100 text-gray-600 border-0 text-[10px]">{trackings.length}</Badge>
           </div>
 
-          {activeTab === 'vehicles' && (
-            <>
-              {loading ? (
-                Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 bg-white rounded-xl animate-pulse" />)
-              ) : trackings.length > 0 ? (
-                trackings.map((t) => {
-                  const vehicleName = t.vehicle ? `${t.vehicle.model.brand.name} ${t.vehicle.model.name}` : `Véhicule #${t.vehicleId}`;
-                  const isPlacing = placingVehicleId === t.vehicleId;
-                  return (
-                    <Card key={t.id} className={`border-0 shadow-sm transition-all ${isPlacing ? 'ring-2 ring-amber-500 bg-amber-50' : selected === t.id ? 'ring-2 ring-blue-500' : 'hover:shadow-md'}`}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="cursor-pointer flex-1" onClick={() => setSelected(t.id === selected ? null : t.id)}>
-                            <p className="font-semibold text-sm">{vehicleName}</p>
-                            <p className="text-xs text-gray-400">{t.vehicle?.plateNumber || ''}</p>
-                          </div>
-                          <Badge className={`border-0 text-[10px] ${t.isOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                            {t.isOnline ? <><Wifi className="h-3 w-3 mr-1" />En ligne</> : <><WifiOff className="h-3 w-3 mr-1" />Hors ligne</>}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                          {t.latitude && t.longitude ? (
-                            <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{t.latitude.toFixed(4)}, {t.longitude.toFixed(4)}</span>
-                          ) : (
-                            <span className="text-gray-400">Pas de position</span>
-                          )}
-                          {t.speed !== null && t.speed > 0 && (
-                            <span className="flex items-center gap-1"><Gauge className="h-3 w-3" />{t.speed} km/h</span>
-                          )}
-                        </div>
-                        {t.lastUpdate && (
-                          <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
-                            <Clock className="h-2.5 w-2.5" />{new Date(t.lastUpdate).toLocaleString('fr-FR')}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-1.5 mt-3 pt-2 border-t border-gray-100">
-                          <Button size="sm" variant="outline" onClick={() => setPlacingVehicleId(isPlacing ? null : t.vehicleId)}
-                            className={`rounded-lg text-xs gap-1 flex-1 ${isPlacing ? 'bg-amber-100 border-amber-300 text-amber-700' : ''}`}>
-                            <Crosshair className="h-3 w-3" /> {isPlacing ? 'Placement...' : 'Placer'}
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 bg-white rounded-xl animate-pulse" />)
+          ) : trackings.length > 0 ? (
+            trackings.map((t) => {
+              const vehicleName = t.vehicle ? `${t.vehicle.model.brand.name} ${t.vehicle.model.name}` : `Véhicule #${t.vehicleId}`;
+              const isPlacing = placingVehicleId === t.vehicleId;
+              const isFollowing = followingId === t.id;
+              const hasPosition = !!(t.latitude && t.longitude);
+              return (
+                <Card key={t.id} className={`border-0 shadow-sm transition-all ${isFollowing ? 'ring-2 ring-green-500 bg-green-50' : isPlacing ? 'ring-2 ring-amber-500 bg-amber-50' : selected === t.id ? 'ring-2 ring-blue-500' : 'hover:shadow-md'}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="cursor-pointer flex-1" onClick={() => setSelected(t.id === selected ? null : t.id)}>
+                        <p className="font-semibold text-sm flex items-center gap-1.5">
+                          {isFollowing && <Radio className="h-3 w-3 text-green-600 animate-pulse" />}
+                          {vehicleName}
+                        </p>
+                        <p className="text-xs text-gray-400">{t.vehicle?.plateNumber || ''}</p>
+                      </div>
+                      <Badge className={`border-0 text-[10px] ${t.isOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {t.isOnline ? <><Wifi className="h-3 w-3 mr-1" />En ligne</> : <><WifiOff className="h-3 w-3 mr-1" />Hors ligne</>}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                      {hasPosition ? (
+                        <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{t.latitude!.toFixed(4)}, {t.longitude!.toFixed(4)}</span>
+                      ) : (
+                        <span className="text-gray-400">Pas de position</span>
+                      )}
+                      {t.speed !== null && t.speed > 0 && (
+                        <span className="flex items-center gap-1"><Gauge className="h-3 w-3" />{t.speed} km/h</span>
+                      )}
+                    </div>
+                    {t.lastUpdate && (
+                      <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
+                        <Clock className="h-2.5 w-2.5" />{new Date(t.lastUpdate).toLocaleString('fr-FR')}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-1.5 mt-3 pt-2 border-t border-gray-100">
+                      {hasPosition && (
+                        <Button size="sm" onClick={() => isFollowing ? stopFollowing() : startFollowing(t)}
+                          className={`rounded-lg text-xs gap-1 flex-1 ${isFollowing ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                          {isFollowing ? <><Eye className="h-3 w-3" /> Suivi actif</> : <><Radio className="h-3 w-3" /> Suivre</>}
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" onClick={() => { setPlacingVehicleId(isPlacing ? null : t.vehicleId); if (!isPlacing) setFollowingId(null); }}
+                        className={`rounded-lg text-xs gap-1 ${isPlacing ? 'bg-amber-100 border-amber-300 text-amber-700' : ''}`}>
+                        <Crosshair className="h-3 w-3" /> {isPlacing ? 'Placement...' : 'Placer'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => toggleOnline(t)}
+                        className={`rounded-lg text-xs gap-1 ${t.isOnline ? 'text-green-600' : 'text-gray-400'}`}>
+                        <Power className="h-3 w-3" />
+                      </Button>
+                      <button onClick={() => removeTracking(t.vehicleId)} className="p-1.5 rounded-lg hover:bg-red-50">
+                        <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                      </button>
+                    </div>
+                    {editingImei === t.vehicleId ? (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="text-[10px] text-gray-400 mb-1.5">IMEI du traceur GPS (15 chiffres sur le boîtier)</p>
+                        <div className="flex items-center gap-1.5">
+                          <Input
+                            value={imeiValue}
+                            onChange={(e) => setImeiValue(e.target.value)}
+                            placeholder="Ex: 860123456789012"
+                            className="h-8 rounded-lg text-xs font-mono flex-1"
+                            maxLength={15}
+                          />
+                          <Button size="sm" onClick={() => saveImei(t.vehicleId)} className="bg-green-600 hover:bg-green-700 rounded-lg h-8 px-2">
+                            <Check className="h-3 w-3" />
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => toggleOnline(t)}
-                            className={`rounded-lg text-xs gap-1 ${t.isOnline ? 'text-green-600' : 'text-gray-400'}`}>
-                            <Power className="h-3 w-3" />
+                          <Button size="sm" variant="outline" onClick={() => { setEditingImei(null); setImeiValue(''); }} className="rounded-lg h-8 px-2">
+                            <X className="h-3 w-3" />
                           </Button>
-                          <button onClick={() => removeTracking(t.vehicleId)} className="p-1.5 rounded-lg hover:bg-red-50">
-                            <Trash2 className="h-3.5 w-3.5 text-red-400" />
-                          </button>
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              ) : (
-                <div className="text-center py-8">
-                  <Car className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Aucun véhicule suivi</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {activeTab === 'zones' && (
-            <>
-              {geofences.length > 0 ? (
-                geofences.map((gf) => {
-                  const pts = JSON.parse(gf.points) as [number, number][];
-                  return (
-                    <Card key={gf.id} className="border-0 shadow-sm">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <p className="font-semibold text-sm flex items-center gap-1.5">
-                              <Shield className={`h-3.5 w-3.5 ${gf.isActive ? 'text-purple-600' : 'text-gray-400'}`} />
-                              {gf.name}
-                            </p>
-                            <p className="text-[10px] text-gray-400">{pts.length} points</p>
-                          </div>
-                          <Badge className={`border-0 text-[10px] ${gf.isActive ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'}`}>
-                            {gf.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-2">
-                          <Button size="sm" variant="outline" onClick={() => toggleGeofence(gf)}
-                            className={`rounded-lg text-xs gap-1 flex-1 ${gf.isActive ? 'text-purple-600' : 'text-gray-400'}`}>
-                            <Power className="h-3 w-3" /> {gf.isActive ? 'Désactiver' : 'Activer'}
-                          </Button>
-                          <button onClick={() => deleteGeofence(gf.id)} className="p-1.5 rounded-lg hover:bg-red-50">
-                            <Trash2 className="h-3.5 w-3.5 text-red-400" />
-                          </button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              ) : (
-                <div className="text-center py-8">
-                  <Shield className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Aucune zone définie</p>
-                  <p className="text-xs text-gray-400 mt-1">Créez une zone pour délimiter la circulation</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {activeTab === 'alerts' && (
-            <>
-              {alerts.length > 0 ? (
-                alerts.map((alert) => {
-                  const vehicle = trackings.find(t => t.vehicleId === alert.vehicleId);
-                  const vehicleName = vehicle?.vehicle ? `${vehicle.vehicle.model.brand.name} ${vehicle.vehicle.model.name}` : `Véhicule #${alert.vehicleId}`;
-                  return (
-                    <Card key={alert.id} className={`border-0 shadow-sm ${!alert.isRead ? 'border-l-4 border-l-red-500' : ''}`}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-semibold text-sm flex items-center gap-1.5">
-                              <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
-                              {vehicleName}
-                            </p>
-                            <p className="text-xs text-red-600 mt-0.5">Sortie de zone autorisée</p>
-                            <p className="text-[10px] text-gray-400 mt-1">{new Date(alert.createdAt).toLocaleString('fr-FR')}</p>
-                            <p className="text-[10px] text-gray-400">{alert.latitude.toFixed(5)}, {alert.longitude.toFixed(5)}</p>
-                          </div>
-                          {!alert.isRead && (
-                            <button onClick={() => markAlertRead(alert.id)} className="p-1.5 rounded-lg hover:bg-gray-100" title="Marquer comme lu">
-                              <Bell className="h-3.5 w-3.5 text-red-500" />
-                            </button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              ) : (
-                <div className="text-center py-8">
-                  <ShieldAlert className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">Aucune alerte</p>
-                  <p className="text-xs text-gray-400 mt-1">Les alertes de sortie de zone apparaîtront ici</p>
-                </div>
-              )}
-            </>
+                      </div>
+                    ) : t.imei ? (
+                      <div className="mt-2 pt-2 border-t border-gray-100 flex items-center gap-2">
+                        <Cpu className="h-3 w-3 text-blue-500" />
+                        <span className="text-[10px] font-mono text-gray-600 flex-1">{t.imei}</span>
+                        <Badge className="bg-blue-50 text-blue-600 border-0 text-[9px]">Traceur GPS</Badge>
+                        <button onClick={() => { setEditingImei(t.vehicleId); setImeiValue(t.imei || ''); }} className="p-1 rounded hover:bg-gray-100" title="Modifier IMEI">
+                          <RefreshCw className="h-3 w-3 text-gray-400" />
+                        </button>
+                        <button onClick={() => removeImei(t.vehicleId)} className="p-1 rounded hover:bg-red-50" title="Dissocier">
+                          <Trash2 className="h-3 w-3 text-red-400" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <button
+                          onClick={() => { setEditingImei(t.vehicleId); setImeiValue(''); }}
+                          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        >
+                          <Cpu className="h-3 w-3" /> Associer un traceur GPS (IMEI)
+                        </button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            <div className="text-center py-8">
+              <Car className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+              <p className="text-sm text-gray-500">Aucun véhicule suivi</p>
+            </div>
           )}
         </div>
       </div>

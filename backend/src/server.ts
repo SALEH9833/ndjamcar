@@ -6,9 +6,10 @@ import bcrypt from 'bcryptjs';
 import prisma from './prisma';
 import { applySecurity } from './middleware/security';
 import { notFoundHandler, errorHandler } from './middleware/error';
+import { startScheduler } from './lib/scheduler';
+import { startTraccarSync } from './lib/traccar';
 
 import authRoutes from './routes/auth.routes';
-import agencyRoutes from './routes/agency.routes';
 import brandsRoutes from './routes/brands.routes';
 import modelsRoutes from './routes/models.routes';
 import vehiclesRoutes from './routes/vehicles.routes';
@@ -17,7 +18,6 @@ import trackingRoutes from './routes/tracking.routes';
 import contactRoutes from './routes/contact.routes';
 import contentRoutes from './routes/content.routes';
 import geofenceRoutes from './routes/geofence.routes';
-import agencyRequestsRoutes from './routes/agency-requests.routes';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '4000', 10);
@@ -37,7 +37,6 @@ app.get('/health', async (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/agencies', agencyRoutes);
 app.use('/api/brands', brandsRoutes);
 app.use('/api/models', modelsRoutes);
 app.use('/api/vehicles', vehiclesRoutes);
@@ -46,7 +45,6 @@ app.use('/api/tracking', trackingRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/geofences', geofenceRoutes);
-app.use('/api/agency-requests', agencyRequestsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
@@ -61,19 +59,14 @@ async function bootstrap(): Promise<void> {
   try {
     const existing = await prisma.adminUser.findUnique({ where: { username } });
     if (existing) {
-      if (existing.role !== 'SUPER_ADMIN') {
-        await prisma.adminUser.update({ where: { id: existing.id }, data: { role: 'SUPER_ADMIN' } });
-        console.log(`[Bootstrap] Admin "${username}" upgraded to SUPER_ADMIN`);
-      } else {
-        console.log(`[Bootstrap] Super-admin "${username}" exists`);
-      }
+      console.log(`[Bootstrap] Admin "${username}" exists`);
       return;
     }
     const passwordHash = await bcrypt.hash(password, 12);
     await prisma.adminUser.create({
-      data: { username, passwordHash, email: process.env.ADMIN_EMAIL || null, role: 'SUPER_ADMIN' },
+      data: { username, passwordHash, email: process.env.ADMIN_EMAIL || null },
     });
-    console.log(`[Bootstrap] Super-admin "${username}" created`);
+    console.log(`[Bootstrap] Admin "${username}" created`);
   } catch (err) {
     console.error('[Bootstrap] Failed:', err);
   }
@@ -81,6 +74,8 @@ async function bootstrap(): Promise<void> {
 
 (async () => {
   await bootstrap();
+  startScheduler();
+  startTraccarSync();
   app.listen(PORT, () => {
     console.log(`\n🚗 NdjamCar Backend running`);
     console.log(`   Local:    http://localhost:${PORT}`);
