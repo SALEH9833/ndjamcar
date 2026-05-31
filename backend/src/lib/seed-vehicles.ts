@@ -165,7 +165,7 @@ const VEHICLES: VehicleSeed[] = [
     seats: 7, transmission: 'AUTOMATIC', fuel: 'DIESEL', pricePerDay: 200000, pricePerWeek: 1200000, pricePerMonth: 4500000,
     mileage: 5000, description: "Lexus LX 600, le summum du luxe tout-terrain. Véhicule de prestige pour les occasions spéciales.",
     features: 'Climatisation,4x4,Cuir,GPS,Caméra 360°,Sièges massants,Écran arrière,Toit ouvrant', isFeatured: true,
-    image: 'https://images.unsplash.com/photo-1568844293986-8c3a55dae4a0?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1603050087224-98d2e1e8930a?w=800&h=500&fit=crop'
   },
   {
     brand: 'BMW', model: 'X5', year: 2022, color: 'Blanc', plate: 'A-1010-TD',
