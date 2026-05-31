@@ -462,7 +462,7 @@ export default function AdminVehiculesPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
                     <select
                       value={v.status}
                       onChange={(e) => updateStatus(v.id, e.target.value)}
@@ -478,21 +478,23 @@ export default function AdminVehiculesPage() {
                       <option value="MAINTENANCE">Maintenance</option>
                       <option value="UNAVAILABLE">Indisponible</option>
                     </select>
-                    <button onClick={() => toggleFeatured(v)} className="p-1.5 rounded-lg hover:bg-gray-100" title="Vedette">
-                      {v.isFeatured ? <Star className="h-4 w-4 text-amber-500 fill-amber-500" /> : <StarOff className="h-4 w-4 text-gray-400" />}
-                    </button>
-                    <Link href={`/admin/vehicules/${v.id}/historique`} className="p-1.5 rounded-lg hover:bg-gray-100" title="Historique">
-                      <History className="h-4 w-4 text-gray-500" />
-                    </Link>
-                    <button onClick={() => setShowImages(v.id)} className="p-1.5 rounded-lg hover:bg-gray-100" title="Images">
-                      <ImageIcon className="h-4 w-4 text-gray-500" />
-                    </button>
-                    <button onClick={() => openEdit(v)} className="p-1.5 rounded-lg hover:bg-gray-100">
-                      <Pencil className="h-4 w-4 text-gray-500" />
-                    </button>
-                    <button onClick={() => deleteVehicle(v.id)} className="p-1.5 rounded-lg hover:bg-red-50">
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => openEdit(v)} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950" title="Modifier prix, infos...">
+                        <Pencil className="h-4 w-4 text-blue-600" />
+                      </button>
+                      <button onClick={() => setShowImages(v.id)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" title="Images">
+                        <ImageIcon className="h-4 w-4 text-gray-500" />
+                      </button>
+                      <button onClick={() => toggleFeatured(v)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" title="Vedette">
+                        {v.isFeatured ? <Star className="h-4 w-4 text-amber-500 fill-amber-500" /> : <StarOff className="h-4 w-4 text-gray-400" />}
+                      </button>
+                      <Link href={`/admin/vehicules/${v.id}/historique`} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" title="Historique">
+                        <History className="h-4 w-4 text-gray-500" />
+                      </Link>
+                      <button onClick={() => deleteVehicle(v.id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950" title="Supprimer">
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
