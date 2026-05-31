@@ -27,6 +27,7 @@ export default function AdminsPage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [saving, setSaving] = useState(false);
+  const [tempPassword, setTempPassword] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -44,7 +45,11 @@ export default function AdminsPage() {
     setSaving(true);
     try {
       const { data } = await api.post('/api/auth/admins', { username: username.trim(), email: email.trim() });
-      toast.success(data.message);
+      if (!data.emailSent && data.message) {
+        const match = data.message.match(/temporaire\s*:\s*(\S+)/);
+        if (match) setTempPassword(match[1]);
+      }
+      toast.success(data.emailSent ? 'Admin créé, email envoyé !' : 'Admin créé !');
       setUsername('');
       setEmail('');
       setShowForm(false);
@@ -81,6 +86,33 @@ export default function AdminsPage() {
           {showForm ? <><X className="h-4 w-4" /> Annuler</> : <><UserPlus className="h-4 w-4" /> Nouvel admin</>}
         </Button>
       </div>
+
+      {tempPassword && (
+        <Card className="border-0 shadow-lg mb-6 border-l-4 border-l-green-500">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-bold text-sm flex items-center gap-2 text-green-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Administrateur créé avec succès
+                </h3>
+                <p className="text-sm text-gray-500 mt-2">Voici le mot de passe temporaire (notez-le maintenant) :</p>
+                <div className="mt-3 bg-gray-100 dark:bg-gray-800 rounded-xl p-4 flex items-center gap-3">
+                  <code className="text-lg font-mono font-bold text-blue-600 select-all">{tempPassword}</code>
+                  <Button size="sm" variant="outline" className="rounded-lg text-xs" onClick={() => { navigator.clipboard.writeText(tempPassword); toast.success('Copié !'); }}>
+                    Copier
+                  </Button>
+                </div>
+                <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Ce mot de passe ne sera plus affiché. L&apos;admin devra le changer à la première connexion.
+                </p>
+              </div>
+              <button onClick={() => setTempPassword('')} className="p-1"><X className="h-4 w-4 text-gray-400" /></button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {showForm && (
         <Card className="border-0 shadow-sm mb-6 border-l-4 border-l-blue-500">
