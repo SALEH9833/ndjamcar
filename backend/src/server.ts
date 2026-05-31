@@ -72,8 +72,30 @@ async function bootstrap(): Promise<void> {
   }
 }
 
+async function seedContent(): Promise<void> {
+  try {
+    const count = await prisma.siteContent.count();
+    if (count > 0) return;
+    const defaults = [
+      { key: 'hero_title', value: 'Louez votre voiture en toute simplicité', label: 'Titre principal', type: 'text', group: 'hero' },
+      { key: 'hero_subtitle', value: 'Large choix de véhicules pour tous vos besoins. Réservez en quelques clics et contactez-nous directement via WhatsApp.', label: 'Sous-titre principal', type: 'textarea', group: 'hero' },
+      { key: 'phone', value: '+235 60 93 57 74', label: 'Téléphone', type: 'text', group: 'contact' },
+      { key: 'email', value: 'contact@ndjamcar.com', label: 'Email', type: 'text', group: 'contact' },
+      { key: 'address', value: "N'Djaména, Tchad", label: 'Adresse', type: 'text', group: 'contact' },
+      { key: 'whatsapp', value: '23560935774', label: 'Numéro WhatsApp', type: 'text', group: 'contact' },
+      { key: 'about_text', value: "Service de location de voitures de confiance à N'Djaména, Tchad. Large gamme de véhicules pour tous vos besoins.", label: 'Texte à propos', type: 'textarea', group: 'general' },
+      { key: 'footer_text', value: '© 2026 NdjamCar. Tous droits réservés.', label: 'Texte footer', type: 'text', group: 'general' },
+    ];
+    await prisma.siteContent.createMany({ data: defaults });
+    console.log('[Bootstrap] Contenu par défaut créé');
+  } catch (err) {
+    console.error('[Bootstrap] Seed content failed:', err);
+  }
+}
+
 (async () => {
   await bootstrap();
+  await seedContent();
   startScheduler();
   startTraccarSync();
   app.listen(PORT, () => {
