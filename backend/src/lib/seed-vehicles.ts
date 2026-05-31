@@ -25,28 +25,28 @@ const VEHICLES: VehicleSeed[] = [
     seats: 7, transmission: 'AUTOMATIC', fuel: 'DIESEL', pricePerDay: 120000, pricePerWeek: 750000, pricePerMonth: 2800000,
     mileage: 15000, description: "Toyota Land Cruiser V8, le roi des routes tchadiennes. Climatisation puissante, 4x4 permanent, idéal pour les longs trajets et les pistes.",
     features: 'Climatisation,4x4,GPS,Bluetooth,Caméra de recul,Sièges cuir', isFeatured: true,
-    image: 'https://images.unsplash.com/photo-1625231334168-29488d4e8d84?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?w=800&h=500&fit=crop'
   },
   {
     brand: 'Toyota', model: 'Hilux', year: 2022, color: 'Gris', plate: 'A-1002-TD',
     seats: 5, transmission: 'MANUAL', fuel: 'DIESEL', pricePerDay: 65000, pricePerWeek: 400000, pricePerMonth: 1500000,
     mileage: 35000, description: "Toyota Hilux double cabine, pick-up robuste parfait pour N'Djaména et ses environs. Résistant et fiable.",
     features: 'Climatisation,4x4,Bluetooth,Benne arrière', isFeatured: true,
-    image: 'https://images.unsplash.com/photo-1625231334401-bfa3e60fc91e?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1559416523-140ddc3d238c?w=800&h=500&fit=crop'
   },
   {
     brand: 'Toyota', model: 'Prado', year: 2023, color: 'Noir', plate: 'A-1003-TD',
     seats: 7, transmission: 'AUTOMATIC', fuel: 'DIESEL', pricePerDay: 100000, pricePerWeek: 600000, pricePerMonth: 2200000,
     mileage: 20000, description: "Toyota Prado TXL, SUV premium tout-terrain. Confort de conduite exceptionnel sur toutes les routes du Tchad.",
     features: 'Climatisation,4x4,GPS,Cuir,Toit ouvrant,Caméra de recul', isFeatured: true,
-    image: 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&h=500&fit=crop'
   },
   {
     brand: 'Toyota', model: 'Corolla', year: 2022, color: 'Blanc', plate: 'A-1004-TD',
     seats: 5, transmission: 'AUTOMATIC', fuel: 'ESSENCE', pricePerDay: 30000, pricePerWeek: 180000, pricePerMonth: 650000,
     mileage: 28000, description: "Toyota Corolla, berline confortable et économique. Idéale pour la ville de N'Djaména.",
     features: 'Climatisation,Bluetooth,Caméra de recul,Régulateur de vitesse', isFeatured: false,
-    image: 'https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1590362891991-f776e747a588?w=800&h=500&fit=crop'
   },
   {
     brand: 'Toyota', model: 'Camry', year: 2023, color: 'Argent', plate: 'A-1005-TD',
@@ -60,14 +60,14 @@ const VEHICLES: VehicleSeed[] = [
     seats: 5, transmission: 'AUTOMATIC', fuel: 'ESSENCE', pricePerDay: 50000, pricePerWeek: 300000, pricePerMonth: 1100000,
     mileage: 22000, description: "Toyota RAV4, SUV compact polyvalent. Parfait compromis entre confort urbain et capacité tout-terrain.",
     features: 'Climatisation,Bluetooth,Caméra de recul,4x4,Régulateur', isFeatured: false,
-    image: 'https://images.unsplash.com/photo-1568844293986-8c3a55dae4a0?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1581540222194-0def2dda95b8?w=800&h=500&fit=crop'
   },
   {
     brand: 'Toyota', model: 'Fortuner', year: 2023, color: 'Blanc', plate: 'A-1007-TD',
     seats: 7, transmission: 'AUTOMATIC', fuel: 'DIESEL', pricePerDay: 80000, pricePerWeek: 500000, pricePerMonth: 1800000,
     mileage: 18000, description: "Toyota Fortuner, SUV 7 places robuste. Idéal pour les familles et les voyages longue distance au Tchad.",
     features: 'Climatisation,4x4,7 places,Bluetooth,Caméra de recul', isFeatured: true,
-    image: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1625231334168-29488d4e8d84?w=800&h=500&fit=crop'
   },
   {
     brand: 'Nissan', model: 'Patrol', year: 2022, color: 'Blanc', plate: 'A-2001-TD',
@@ -88,21 +88,21 @@ const VEHICLES: VehicleSeed[] = [
     seats: 5, transmission: 'AUTOMATIC', fuel: 'ESSENCE', pricePerDay: 45000, pricePerWeek: 270000, pricePerMonth: 950000,
     mileage: 15000, description: "Hyundai Tucson nouvelle génération. Design moderne, confort premium, idéal pour la ville.",
     features: 'Climatisation,Bluetooth,Caméra de recul,Écran tactile,Démarrage sans clé', isFeatured: true,
-    image: 'https://images.unsplash.com/photo-1637699482093-ad21b32e1e2e?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1633695632077-5bfa0a17ad73?w=800&h=500&fit=crop'
   },
   {
     brand: 'Hyundai', model: 'Santa Fe', year: 2022, color: 'Blanc', plate: 'A-3002-TD',
     seats: 7, transmission: 'AUTOMATIC', fuel: 'DIESEL', pricePerDay: 60000, pricePerWeek: 360000, pricePerMonth: 1300000,
     mileage: 20000, description: "Hyundai Santa Fe 7 places, SUV spacieux pour toute la famille. Confort et fiabilité.",
     features: 'Climatisation,7 places,Cuir,Bluetooth,Caméra de recul,4x4', isFeatured: false,
-    image: 'https://images.unsplash.com/photo-1626443252351-4f3e2e30a853?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800&h=500&fit=crop'
   },
   {
     brand: 'Hyundai', model: 'Accent', year: 2023, color: 'Rouge', plate: 'A-3003-TD',
     seats: 5, transmission: 'AUTOMATIC', fuel: 'ESSENCE', pricePerDay: 25000, pricePerWeek: 150000, pricePerMonth: 550000,
     mileage: 10000, description: "Hyundai Accent, berline compacte économique. Parfaite pour les petits budgets en ville.",
     features: 'Climatisation,Bluetooth,USB', isFeatured: false,
-    image: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0afa?w=800&h=500&fit=crop'
   },
   {
     brand: 'Mercedes-Benz', model: 'Classe E', year: 2023, color: 'Noir', plate: 'A-4001-TD',
@@ -123,49 +123,49 @@ const VEHICLES: VehicleSeed[] = [
     seats: 5, transmission: 'MANUAL', fuel: 'DIESEL', pricePerDay: 55000, pricePerWeek: 330000, pricePerMonth: 1200000,
     mileage: 40000, description: "Mitsubishi L200, pick-up robuste et fiable. Parfait pour le travail et les routes difficiles du Tchad.",
     features: 'Climatisation,4x4,Bluetooth,Benne arrière', isFeatured: false,
-    image: 'https://images.unsplash.com/photo-1559416523-140ddc3d238c?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1612544448445-b8232cff3b6c?w=800&h=500&fit=crop'
   },
   {
     brand: 'Mitsubishi', model: 'Pajero', year: 2021, color: 'Noir', plate: 'A-5002-TD',
     seats: 7, transmission: 'AUTOMATIC', fuel: 'DIESEL', pricePerDay: 90000, pricePerWeek: 550000, pricePerMonth: 2000000,
     mileage: 35000, description: "Mitsubishi Pajero, légende du tout-terrain. Indestructible sur les pistes tchadiennes.",
     features: 'Climatisation,4x4,7 places,Cuir,Bluetooth', isFeatured: false,
-    image: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1625231334401-bfa3e60fc91e?w=800&h=500&fit=crop'
   },
   {
     brand: 'Suzuki', model: 'Jimny', year: 2023, color: 'Vert', plate: 'A-6001-TD',
     seats: 4, transmission: 'MANUAL', fuel: 'ESSENCE', pricePerDay: 35000, pricePerWeek: 210000, pricePerMonth: 750000,
     mileage: 8000, description: "Suzuki Jimny, petit 4x4 agile et fun. Parfait pour se faufiler dans les rues de N'Djaména.",
     features: 'Climatisation,4x4,Bluetooth', isFeatured: true,
-    image: 'https://images.unsplash.com/photo-1636761358775-209da3cf0dba?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1570733577524-3a047079e80d?w=800&h=500&fit=crop'
   },
   {
     brand: 'Suzuki', model: 'Vitara', year: 2022, color: 'Blanc', plate: 'A-6002-TD',
     seats: 5, transmission: 'AUTOMATIC', fuel: 'ESSENCE', pricePerDay: 40000, pricePerWeek: 240000, pricePerMonth: 850000,
     mileage: 18000, description: "Suzuki Vitara, SUV compact et économique. Bon rapport qualité-prix.",
     features: 'Climatisation,Bluetooth,Caméra de recul,4x4', isFeatured: false,
-    image: 'https://images.unsplash.com/photo-1605893477799-b99e3b8b93fe?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=500&fit=crop'
   },
   {
     brand: 'Kia', model: 'Sportage', year: 2023, color: 'Gris', plate: 'A-7001-TD',
     seats: 5, transmission: 'AUTOMATIC', fuel: 'DIESEL', pricePerDay: 50000, pricePerWeek: 300000, pricePerMonth: 1100000,
     mileage: 12000, description: "Kia Sportage, SUV moderne au design audacieux. Technologie et confort au rendez-vous.",
     features: 'Climatisation,Écran tactile,Caméra de recul,Bluetooth,Démarrage sans clé', isFeatured: false,
-    image: 'https://images.unsplash.com/photo-1619682817481-e994891cd1f5?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800&h=500&fit=crop'
   },
   {
     brand: 'Ford', model: 'Ranger', year: 2022, color: 'Bleu', plate: 'A-8001-TD',
     seats: 5, transmission: 'AUTOMATIC', fuel: 'DIESEL', pricePerDay: 60000, pricePerWeek: 360000, pricePerMonth: 1300000,
     mileage: 25000, description: "Ford Ranger, pick-up puissant et confortable. Double cabine spacieuse, idéal pour le Tchad.",
     features: 'Climatisation,4x4,Bluetooth,Benne arrière,Caméra de recul', isFeatured: false,
-    image: 'https://images.unsplash.com/photo-1612544448445-b8232cff3b6c?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=500&fit=crop'
   },
   {
     brand: 'Lexus', model: 'LX', year: 2023, color: 'Noir', plate: 'A-9001-TD',
     seats: 7, transmission: 'AUTOMATIC', fuel: 'DIESEL', pricePerDay: 200000, pricePerWeek: 1200000, pricePerMonth: 4500000,
     mileage: 5000, description: "Lexus LX 600, le summum du luxe tout-terrain. Véhicule de prestige pour les occasions spéciales.",
     features: 'Climatisation,4x4,Cuir,GPS,Caméra 360°,Sièges massants,Écran arrière,Toit ouvrant', isFeatured: true,
-    image: 'https://images.unsplash.com/photo-1590510696023-cb65d59ef392?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1568844293986-8c3a55dae4a0?w=800&h=500&fit=crop'
   },
   {
     brand: 'BMW', model: 'X5', year: 2022, color: 'Blanc', plate: 'A-1010-TD',
@@ -179,21 +179,42 @@ const VEHICLES: VehicleSeed[] = [
     seats: 5, transmission: 'MANUAL', fuel: 'DIESEL', pricePerDay: 30000, pricePerWeek: 180000, pricePerMonth: 650000,
     mileage: 15000, description: "Renault Duster, SUV abordable et robuste. Excellent choix pour les routes du Tchad à petit budget.",
     features: 'Climatisation,4x4,Bluetooth,GPS', isFeatured: false,
-    image: 'https://images.unsplash.com/photo-1551830820-330a71b99659?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800&h=500&fit=crop'
   },
   {
     brand: 'Peugeot', model: '3008', year: 2022, color: 'Gris', plate: 'A-1012-TD',
     seats: 5, transmission: 'AUTOMATIC', fuel: 'DIESEL', pricePerDay: 55000, pricePerWeek: 330000, pricePerMonth: 1200000,
     mileage: 20000, description: "Peugeot 3008, SUV français au design futuriste. Intérieur i-Cockpit unique et confortable.",
     features: 'Climatisation,Écran tactile,Caméra de recul,Bluetooth,i-Cockpit', isFeatured: false,
-    image: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=500&fit=crop'
   },
 ];
+
+async function fixBrokenImages(): Promise<void> {
+  const plates = VEHICLES.map(v => v.plate);
+  const vehicles = await prisma.vehicle.findMany({
+    where: { plateNumber: { in: plates } },
+    include: { images: true },
+  });
+  for (const vehicle of vehicles) {
+    const seed = VEHICLES.find(v => v.plate === vehicle.plateNumber);
+    if (!seed) continue;
+    for (const img of vehicle.images) {
+      if (img.url !== seed.image) {
+        await prisma.vehicleImage.update({ where: { id: img.id }, data: { url: seed.image } });
+      }
+    }
+  }
+  if (vehicles.length > 0) console.log(`[Bootstrap] Images mises à jour pour ${vehicles.length} véhicules`);
+}
 
 export async function seedVehicles(): Promise<void> {
   try {
     const count = await prisma.vehicle.count();
-    if (count > 0) return;
+    if (count > 0) {
+      await fixBrokenImages();
+      return;
+    }
 
     for (const v of VEHICLES) {
       const brand = await prisma.brand.findFirst({ where: { name: v.brand } });
