@@ -72,6 +72,37 @@ async function bootstrap(): Promise<void> {
   }
 }
 
+async function seedBrandsAndModels(): Promise<void> {
+  try {
+    const count = await prisma.brand.count();
+    if (count > 0) return;
+    const data: Record<string, string[]> = {
+      'Toyota': ['Corolla','Hilux','Land Cruiser','RAV4','Camry','Prado','Fortuner','Yaris','Rush','Avanza'],
+      'Hyundai': ['Tucson','Santa Fe','Accent','Creta','Elantra','Sonata','i10','i20'],
+      'Nissan': ['Patrol','X-Trail','Navara','Sentra','Sunny','Kicks','Pathfinder'],
+      'Mercedes-Benz': ['Classe C','Classe E','Classe S','GLE','GLC','Classe A','Sprinter'],
+      'Suzuki': ['Jimny','Swift','Vitara','Alto','Dzire','Ertiga'],
+      'Mitsubishi': ['L200','Pajero','Outlander','ASX','Eclipse Cross'],
+      'BMW': ['Série 3','Série 5','X3','X5','Série 7','X1'],
+      'Renault': ['Duster','Clio','Symbol','Megane','Kwid','Logan'],
+      'Peugeot': ['3008','2008','208','301','508','Partner'],
+      'Kia': ['Sportage','Sorento','Picanto','Rio','Seltos','Carnival'],
+      'Honda': ['Civic','CR-V','HR-V','Accord','City'],
+      'Ford': ['Ranger','Everest','Focus','EcoSport','Explorer'],
+      'Volkswagen': ['Golf','Tiguan','Polo','Passat','Touareg','Amarok'],
+      'Lexus': ['RX','LX','NX','ES','GX'],
+    };
+    let order = 1;
+    for (const [brandName, models] of Object.entries(data)) {
+      const brand = await prisma.brand.create({ data: { name: brandName, order: order++ } });
+      await prisma.model.createMany({ data: models.map(name => ({ name, brandId: brand.id })) });
+    }
+    console.log(`[Bootstrap] ${Object.keys(data).length} marques et modèles créés`);
+  } catch (err) {
+    console.error('[Bootstrap] Seed brands failed:', err);
+  }
+}
+
 async function seedContent(): Promise<void> {
   try {
     const count = await prisma.siteContent.count();
@@ -95,6 +126,7 @@ async function seedContent(): Promise<void> {
 
 (async () => {
   await bootstrap();
+  await seedBrandsAndModels();
   await seedContent();
   startScheduler();
   startTraccarSync();
