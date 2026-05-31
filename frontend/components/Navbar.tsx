@@ -7,6 +7,7 @@ import { Car, Menu, X, MessageCircle, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTheme } from './ThemeProvider';
+import { useSiteContent } from '@/lib/useSiteContent';
 
 const NAV_ITEMS = [
   { label: 'Accueil', href: '/' },
@@ -14,12 +15,12 @@ const NAV_ITEMS = [
   { label: 'Contact', href: '/contact' },
 ];
 
-const WHATSAPP = '23560935774';
-
 export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { resolved, setTheme } = useTheme();
+  const { get } = useSiteContent();
+  const WHATSAPP = get('whatsapp', '23560935774');
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">

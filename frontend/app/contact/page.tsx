@@ -9,10 +9,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Phone, Mail, MapPin, MessageCircle, Send, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-
-const WHATSAPP = '23560935774';
+import { useSiteContent } from '@/lib/useSiteContent';
 
 export default function ContactPage() {
+  const { get } = useSiteContent();
+  const WHATSAPP = get('whatsapp', '23560935774');
+  const PHONE = get('phone', '+235 60 93 57 74');
+  const EMAIL = get('email', 'contact@ndjamcar.com');
+  const ADDRESS = get('address', "N'Djaména, Tchad");
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -66,9 +71,9 @@ export default function ContactPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
           <div className="space-y-4">
             {[
-              { icon: Phone, label: 'Téléphone', value: '+235 60 93 57 74', href: 'tel:+23560935774' },
-              { icon: Mail, label: 'Email', value: 'contact@ndjamcar.com', href: 'mailto:contact@ndjamcar.com' },
-              { icon: MapPin, label: 'Adresse', value: 'N\'Djamena, Tchad', href: undefined },
+              { icon: Phone, label: 'Téléphone', value: PHONE, href: `tel:${PHONE.replace(/\s/g, '')}` },
+              { icon: Mail, label: 'Email', value: EMAIL, href: `mailto:${EMAIL}` },
+              { icon: MapPin, label: 'Adresse', value: ADDRESS, href: undefined },
             ].map((item) => (
               <Card key={item.label} className="border-0 shadow-sm">
                 <CardContent className="p-5 flex items-center gap-4">

@@ -10,9 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Car, Shield, Clock, Star, ArrowRight, MessageCircle, Fuel, Users, Settings2, ChevronDown, Phone, MapPin, Sparkles } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import type { Vehicle, Brand } from '@/lib/types';
+import { useSiteContent } from '@/lib/useSiteContent';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-const WHATSAPP = '23560935774';
 
 function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: string }) {
   const [count, setCount] = useState(0);
@@ -38,6 +38,8 @@ function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: str
 export default function HomePage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const { get } = useSiteContent();
+  const WHATSAPP = get('whatsapp', '23560935774');
 
   useEffect(() => {
     fetch(`${API}/api/vehicles?featured=true`).then(r => r.json()).then(d => setVehicles((d.data || []).slice(0, 6))).catch(() => {});

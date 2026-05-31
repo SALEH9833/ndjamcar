@@ -14,9 +14,9 @@ import { formatPrice } from '@/lib/utils';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import type { Vehicle } from '@/lib/types';
+import { useSiteContent } from '@/lib/useSiteContent';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-const WHATSAPP = '23560935774';
 
 export default function VehicleDetailPage() {
   const { id } = useParams();
@@ -30,6 +30,8 @@ export default function VehicleDetailPage() {
   const [endDate, setEndDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const { get } = useSiteContent();
+  const WHATSAPP = get('whatsapp', '23560935774');
 
   useEffect(() => {
     fetch(`${API}/api/vehicles/${id}`)

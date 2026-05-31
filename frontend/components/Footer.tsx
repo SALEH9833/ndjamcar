@@ -2,8 +2,17 @@
 
 import Link from 'next/link';
 import { Car, Phone, Mail, MapPin, MessageCircle } from 'lucide-react';
+import { useSiteContent } from '@/lib/useSiteContent';
 
 export default function Footer() {
+  const { get } = useSiteContent();
+  const phone = get('phone', '+235 60 93 57 74');
+  const email = get('email', 'contact@ndjamcar.com');
+  const address = get('address', "N'Djaména, Tchad");
+  const whatsapp = get('whatsapp', '23560935774');
+  const aboutText = get('about_text', "Service de location de voitures de confiance à N'Djaména, Tchad. Large gamme de véhicules pour tous vos besoins.");
+  const footerText = get('footer_text', '© 2026 NdjamCar. Tous droits réservés.');
+
   return (
     <footer className="bg-gray-900 dark:bg-gray-950 text-white mt-auto border-t dark:border-gray-800">
       <div className="container mx-auto px-4 py-12">
@@ -15,9 +24,7 @@ export default function Footer() {
               </div>
               <span className="text-xl font-extrabold">Ndjam<span className="text-blue-400">Car</span></span>
             </div>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Service de location de voitures de confiance à N&apos;Djamena, Tchad. Large gamme de véhicules pour tous vos besoins.
-            </p>
+            <p className="text-gray-400 text-sm leading-relaxed">{aboutText}</p>
           </div>
 
           <div>
@@ -32,16 +39,16 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold mb-4">Contact</h3>
             <div className="space-y-3">
-              <a href="tel:+23560935774" className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
-                <Phone className="h-4 w-4" /> +235 60 93 57 74
+              <a href={`tel:${phone.replace(/\s/g, '')}`} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
+                <Phone className="h-4 w-4" /> {phone}
               </a>
-              <a href="mailto:contact@ndjamcar.com" className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
-                <Mail className="h-4 w-4" /> contact@ndjamcar.com
+              <a href={`mailto:${email}`} className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
+                <Mail className="h-4 w-4" /> {email}
               </a>
               <div className="flex items-center gap-2 text-sm text-gray-400">
-                <MapPin className="h-4 w-4" /> N&apos;Djamena, Tchad
+                <MapPin className="h-4 w-4" /> {address}
               </div>
-              <a href="https://wa.me/23560935774" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors">
+              <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors">
                 <MessageCircle className="h-4 w-4" /> WhatsApp
               </a>
             </div>
@@ -49,7 +56,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-6 text-center">
-          <p className="text-xs text-gray-500">&copy; 2026 NdjamCar. Tous droits réservés.</p>
+          <p className="text-xs text-gray-500">{footerText}</p>
         </div>
       </div>
     </footer>

@@ -11,7 +11,6 @@ import api from '@/lib/api';
 import type { Reservation } from '@/lib/types';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-const WHATSAPP = '23560935774';
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   PENDING: { label: 'En attente', color: 'bg-amber-100 text-amber-700' },
