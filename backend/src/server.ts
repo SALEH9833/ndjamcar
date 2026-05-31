@@ -8,6 +8,7 @@ import { applySecurity } from './middleware/security';
 import { notFoundHandler, errorHandler } from './middleware/error';
 import { startScheduler } from './lib/scheduler';
 import { startTraccarSync } from './lib/traccar';
+import { seedVehicles } from './lib/seed-vehicles';
 
 import authRoutes from './routes/auth.routes';
 import brandsRoutes from './routes/brands.routes';
@@ -128,6 +129,7 @@ async function seedContent(): Promise<void> {
   await bootstrap();
   await seedBrandsAndModels();
   await seedContent();
+  await seedVehicles();
   startScheduler();
   startTraccarSync();
   app.listen(PORT, () => {
