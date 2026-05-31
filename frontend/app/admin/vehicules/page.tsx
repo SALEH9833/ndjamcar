@@ -50,6 +50,10 @@ export default function AdminVehiculesPage() {
   const [imei, setImei] = useState('');
   const [newImages, setNewImages] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [newBrandName, setNewBrandName] = useState('');
+  const [newModelName, setNewModelName] = useState('');
+  const [addingBrand, setAddingBrand] = useState(false);
+  const [addingModel, setAddingModel] = useState(false);
 
   const fetchVehicles = useCallback(() => {
     setLoading(true);
@@ -145,6 +149,34 @@ export default function AdminVehiculesPage() {
     } catch { toast.error('Erreur'); }
   };
 
+  const addBrand = async () => {
+    if (!newBrandName.trim()) return;
+    setAddingBrand(true);
+    try {
+      const res = await api.post('/api/brands', { name: newBrandName.trim() });
+      const brandsRes = await api.get('/api/brands');
+      setBrands(brandsRes.data.data || []);
+      setSelectedBrand(res.data.data.id.toString());
+      setNewBrandName('');
+      toast.success(`Marque "${newBrandName.trim()}" ajoutée`);
+    } catch { toast.error('Erreur lors de l\'ajout'); }
+    finally { setAddingBrand(false); }
+  };
+
+  const addModel = async () => {
+    if (!newModelName.trim() || !selectedBrand) return;
+    setAddingModel(true);
+    try {
+      const res = await api.post('/api/models', { name: newModelName.trim(), brandId: parseInt(selectedBrand) });
+      const brandsRes = await api.get('/api/brands');
+      setBrands(brandsRes.data.data || []);
+      setModelId(res.data.data.id.toString());
+      setNewModelName('');
+      toast.success(`Modèle "${newModelName.trim()}" ajouté`);
+    } catch { toast.error('Erreur lors de l\'ajout'); }
+    finally { setAddingModel(false); }
+  };
+
   const updateStatus = async (id: number, status: string) => {
     try { await api.put(`/api/vehicles/${id}`, { status }); toast.success('Statut mis à jour'); fetchVehicles(); }
     catch { toast.error('Erreur'); }
@@ -229,17 +261,45 @@ export default function AdminVehiculesPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Marque *</Label>
-                  <select value={selectedBrand} onChange={(e) => { setSelectedBrand(e.target.value); setModelId(''); }} className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm">
-                    <option value="">Choisir</option>
-                    {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                  </select>
+                  <div className="flex gap-1.5">
+                    <select value={selectedBrand} onChange={(e) => { setSelectedBrand(e.target.value); setModelId(''); }} className="flex-1 h-10 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 px-3 text-sm">
+                      <option value="">Choisir</option>
+                      {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                    <Button type="button" size="sm" variant="outline" className="h-10 px-2.5 rounded-lg" onClick={() => setNewBrandName(newBrandName ? '' : ' ')}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {newBrandName !== '' && (
+                    <div className="flex gap-1.5 mt-1.5">
+                      <Input value={newBrandName.trim()} onChange={(e) => setNewBrandName(e.target.value)} placeholder="Nom de la marque" className="h-9 rounded-lg text-sm" />
+                      <Button type="button" size="sm" onClick={addBrand} disabled={addingBrand} className="h-9 bg-blue-600 hover:bg-blue-700 rounded-lg text-xs">
+                        {addingBrand ? '...' : 'Ajouter'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Modèle *</Label>
-                  <select value={modelId} onChange={(e) => setModelId(e.target.value)} className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm">
-                    <option value="">Choisir</option>
-                    {currentModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </select>
+                  <div className="flex gap-1.5">
+                    <select value={modelId} onChange={(e) => setModelId(e.target.value)} className="flex-1 h-10 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 px-3 text-sm">
+                      <option value="">Choisir</option>
+                      {currentModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                    {selectedBrand && (
+                      <Button type="button" size="sm" variant="outline" className="h-10 px-2.5 rounded-lg" onClick={() => setNewModelName(newModelName ? '' : ' ')}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  {newModelName !== '' && selectedBrand && (
+                    <div className="flex gap-1.5 mt-1.5">
+                      <Input value={newModelName.trim()} onChange={(e) => setNewModelName(e.target.value)} placeholder="Nom du modèle" className="h-9 rounded-lg text-sm" />
+                      <Button type="button" size="sm" onClick={addModel} disabled={addingModel} className="h-9 bg-blue-600 hover:bg-blue-700 rounded-lg text-xs">
+                        {addingModel ? '...' : 'Ajouter'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Année</Label>
