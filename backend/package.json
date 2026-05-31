@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "npx prisma generate && npx esbuild src/server.ts --bundle --platform=node --outdir=dist --format=cjs --external:@prisma/client --external:bcryptjs --external:cloudinary --external:multer --external:pdfkit --external:nodemailer",
-    "start": "node dist/server.js"
+    "start": "npx prisma migrate deploy && node dist/server.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
