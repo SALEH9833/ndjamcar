@@ -135,15 +135,13 @@ router.post('/admins', requireAdmin, async (req, res, next) => {
       select: { id: true, username: true, email: true, createdAt: true },
     });
 
-    const emailSent = await sendWelcomeEmail(email, username, tempPassword);
+    sendWelcomeEmail(email, username, tempPassword).catch(() => {});
 
     res.status(201).json({
       success: true,
       data: admin,
-      emailSent,
-      message: emailSent
-        ? `Admin "${username}" créé. Un email a été envoyé à ${email}`
-        : `Admin "${username}" créé. L'email n'a pas pu être envoyé. Mot de passe temporaire : ${tempPassword}`,
+      tempPassword,
+      message: `Admin "${username}" créé. Mot de passe temporaire : ${tempPassword}`,
     });
   } catch (err) { next(err); }
 });

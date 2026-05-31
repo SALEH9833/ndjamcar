@@ -45,11 +45,8 @@ export default function AdminsPage() {
     setSaving(true);
     try {
       const { data } = await api.post('/api/auth/admins', { username: username.trim(), email: email.trim() });
-      if (!data.emailSent && data.message) {
-        const match = data.message.match(/temporaire\s*:\s*(\S+)/);
-        if (match) setTempPassword(match[1]);
-      }
-      toast.success(data.emailSent ? 'Admin créé, email envoyé !' : 'Admin créé !');
+      if (data.tempPassword) setTempPassword(data.tempPassword);
+      toast.success('Admin créé !');
       setUsername('');
       setEmail('');
       setShowForm(false);
