@@ -25,7 +25,7 @@ const VEHICLES: VehicleSeed[] = [
     seats: 7, transmission: 'AUTOMATIC', fuel: 'DIESEL', pricePerDay: 120000, pricePerWeek: 750000, pricePerMonth: 2800000,
     mileage: 15000, description: "Toyota Land Cruiser V8, le roi des routes tchadiennes. Climatisation puissante, 4x4 permanent, idéal pour les longs trajets et les pistes.",
     features: 'Climatisation,4x4,GPS,Bluetooth,Caméra de recul,Sièges cuir', isFeatured: true,
-    image: 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1650530579355-7ad9d4766043?w=800&h=500&fit=crop'
   },
   {
     brand: 'Toyota', model: 'Hilux', year: 2022, color: 'Gris', plate: 'A-1002-TD',
@@ -67,7 +67,7 @@ const VEHICLES: VehicleSeed[] = [
     seats: 7, transmission: 'AUTOMATIC', fuel: 'DIESEL', pricePerDay: 80000, pricePerWeek: 500000, pricePerMonth: 1800000,
     mileage: 18000, description: "Toyota Fortuner, SUV 7 places robuste. Idéal pour les familles et les voyages longue distance au Tchad.",
     features: 'Climatisation,4x4,7 places,Bluetooth,Caméra de recul', isFeatured: true,
-    image: 'https://images.unsplash.com/photo-1625231334168-29488d4e8d84?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1664783856972-ac9922d7b2d3?w=800&h=500&fit=crop'
   },
   {
     brand: 'Nissan', model: 'Patrol', year: 2022, color: 'Blanc', plate: 'A-2001-TD',
@@ -88,7 +88,7 @@ const VEHICLES: VehicleSeed[] = [
     seats: 5, transmission: 'AUTOMATIC', fuel: 'ESSENCE', pricePerDay: 45000, pricePerWeek: 270000, pricePerMonth: 950000,
     mileage: 15000, description: "Hyundai Tucson nouvelle génération. Design moderne, confort premium, idéal pour la ville.",
     features: 'Climatisation,Bluetooth,Caméra de recul,Écran tactile,Démarrage sans clé', isFeatured: true,
-    image: 'https://images.unsplash.com/photo-1633695632077-5bfa0a17ad73?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1575090536203-2a6193126514?w=800&h=500&fit=crop'
   },
   {
     brand: 'Hyundai', model: 'Santa Fe', year: 2022, color: 'Blanc', plate: 'A-3002-TD',
@@ -102,7 +102,7 @@ const VEHICLES: VehicleSeed[] = [
     seats: 5, transmission: 'AUTOMATIC', fuel: 'ESSENCE', pricePerDay: 25000, pricePerWeek: 150000, pricePerMonth: 550000,
     mileage: 10000, description: "Hyundai Accent, berline compacte économique. Parfaite pour les petits budgets en ville.",
     features: 'Climatisation,Bluetooth,USB', isFeatured: false,
-    image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0afa?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800&h=500&fit=crop'
   },
   {
     brand: 'Mercedes-Benz', model: 'Classe E', year: 2023, color: 'Noir', plate: 'A-4001-TD',
@@ -130,14 +130,14 @@ const VEHICLES: VehicleSeed[] = [
     seats: 7, transmission: 'AUTOMATIC', fuel: 'DIESEL', pricePerDay: 90000, pricePerWeek: 550000, pricePerMonth: 2000000,
     mileage: 35000, description: "Mitsubishi Pajero, légende du tout-terrain. Indestructible sur les pistes tchadiennes.",
     features: 'Climatisation,4x4,7 places,Cuir,Bluetooth', isFeatured: false,
-    image: 'https://images.unsplash.com/photo-1625231334401-bfa3e60fc91e?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&h=500&fit=crop'
   },
   {
     brand: 'Suzuki', model: 'Jimny', year: 2023, color: 'Vert', plate: 'A-6001-TD',
     seats: 4, transmission: 'MANUAL', fuel: 'ESSENCE', pricePerDay: 35000, pricePerWeek: 210000, pricePerMonth: 750000,
     mileage: 8000, description: "Suzuki Jimny, petit 4x4 agile et fun. Parfait pour se faufiler dans les rues de N'Djaména.",
     features: 'Climatisation,4x4,Bluetooth', isFeatured: true,
-    image: 'https://images.unsplash.com/photo-1570733577524-3a047079e80d?w=800&h=500&fit=crop'
+    image: 'https://images.unsplash.com/photo-1730830812275-05d20a099679?w=800&h=500&fit=crop'
   },
   {
     brand: 'Suzuki', model: 'Vitara', year: 2022, color: 'Blanc', plate: 'A-6002-TD',
